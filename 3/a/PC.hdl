@@ -1,0 +1,50 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/3/a/PC.hdl
+/**
+ * A 16-bit counter.
+ * if      reset(t): out(t+1) = 0
+ * else if load(t):  out(t+1) = in(t)
+ * else if inc(t):   out(t+1) = out(t) + 1
+ * else              out(t+1) = out(t)
+ */
+CHIP PC {
+    IN in[16],inc, load, reset;
+    OUT out[16];
+    
+    PARTS:
+
+    // the register needs to be fed with the output so that it can remember it on next cycle
+    // so its always at last so that it has all its parameters to store the result of a cycle 
+    // to be used in next cycle. just like DFF in Bit.hdl 
+
+    Inc16(in = regout, out = incremented);
+
+    // priority: reset > load > inc > hold so we do the most significant one at last because
+    // at the last moment what will matter is what it thinks should happen 
+
+    Mux16(a = regout, b = incremented, sel = inc, out = incorhold); // check if output this cycle
+                                                                    // is to be incremented
+
+    Mux16(a = incorhold, b = in, sel = load, out = loadorincorhold); // here we use the in[16] 
+                                                                     // of this cycle to decide 
+                                                                     // if output this cycle 
+                                                                     // = new input this cycle 
+
+    Mux16(a = loadorincorhold, b = false, sel = reset, out = output); // finally check if 
+                                                                      // output this cycle = 0
+
+    // if any change i.e incremented or loaded we should load this new output into the register 
+    Or(a = inc, b = load, out = incorload);
+    Or(a = incorload, b = reset, out = shouldload);
+
+    Register(in = output, load = shouldload, out = out, out = regout);
+    // regout is not getting used this cycle but this cycle's regout will be used next cycle 
+    // as a wire from the output pin of this registered is connected to the Mux gate backwards
+    // just like in Bit chip's diagram 
+
+    // if u see the implementation is exactly like implementation of Bit.hdl just here there is a 
+    // chain of Mux gates instead of a single one as here the number of control bits is 3 unlike 
+    // only 1 control bit (load) in Bit.hdl 
+}
