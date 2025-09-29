@@ -7,33 +7,108 @@
 // (R0, R1, R2 refer to RAM[0], RAM[1], and RAM[2], respectively.)
 // The algorithm is based on repetitive addition.
 
-    @i 
-    M = 0
+//// *Indentation is for my own logical understanding
+
+// variables
+@i 
+M = 1
+@nR1 
+M = 0 
+@nR2 
+M = 0
+
+// check if anyone of R0 or R1 = 0
+@R0 
+D = M 
+@ZERO
+D; JEQ 
+@R1 
+D = M 
+@ZERO 
+D; JEQ 
 
 (CHECK)
+    @R0 
+    D = M 
+    @MAKER0POS
+    D; JLT 
+
+    @R1 
+    D = M 
+    @MAKER1POS 
+    D; JLT 
+
+@R0 
+D = M 
+@c // variable c is the copy of |R0|
+M = D
+@CAL 
+0; JMP 
+
+(ZERO)
+    @R2 
+    M = 0
+    @END 
+    0; JMP 
+
+(MAKER0POS)
+    @nR0
+    M = 1
+    @R0 
+    M = -M 
+    @CHECK 
+    0; JMP 
+
+(MAKER1POS)
+    @nR1 
+    M = 1
+    @R1 
+    M = -M 
+    @CHECK 
+    0; JMP 
+
+(LOOP)
+    @c 
+    D = M 
+    @R0 
+    M = D + M 
+    @i 
+    M = M + 1 
+    @CAL 
+    0; JMP 
+(CAL)
     @i 
     D = M 
     @R1 
     D = D - M 
     @LOOP
-    D; JLT 
-
-(LOOP)
-    @R0 
-    D = M
-    M = D + M 
-    @i 
-    M = M + 1
-    @CHECK 
+    D; JLT
+    @WRITER2
     0; JMP 
 
-
-// store mult value in RAM[2]
+(WRITER2) 
     @R0 
-    D = M
+    D = M 
     @R2 
     M = D
 
-(END)
+    // check if ans should be -ve 
+    @nR0 
+    D = M 
+    @nR1 
+    D = D + M 
+    D = D - 1
+    @NEGATE 
+    D; JEQ 
+
     @END
     0; JMP 
+
+(NEGATE)
+    @R2 
+    M = -M 
+
+(END)
+    @END
+    0; JMP
+    
