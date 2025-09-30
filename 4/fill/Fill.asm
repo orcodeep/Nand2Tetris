@@ -10,9 +10,6 @@
 
 @SCREEN 
 D = A 
-@i 
-A = D 
-
 // store the last register's address + 1. which is = RAM[l]
 @l 
 M = D 
@@ -21,6 +18,13 @@ D = A
 @l 
 M = M + D
 
+(START)
+@SCREEN 
+D = A 
+@i 
+A = D 
+
+(CHECK)
 @KBD 
 D = M 
 @FILL
@@ -40,19 +44,14 @@ A = D
     D = D - M 
     @FLOOP
     D; JLT 
-    @SCREEN 
-    D = A 
-    @i 
-    A = D
+    @START 
+    0; JMP 
 
 (FLOOP) 
     @i 
-    M = 1
-    @16 
-    D = A 
-    @i 
-    A = D + A 
-    @FILL 
+    M = -1
+    A = A + 1
+    @CHECK 
     0; JMP 
 
 (CLEAR)
@@ -62,16 +61,13 @@ A = D
     D = D - M 
     @CLOOP
     D; JLT 
-    @END 
+    @START 
     0; JMP 
 
 (CLOOP)
     @i 
-    M = 1
-    @16 
-    D = A 
-    @i 
-    A = D + A 
+    M = 0
+    A = A + 1
     @CLEAR  
     0; JMP 
 
