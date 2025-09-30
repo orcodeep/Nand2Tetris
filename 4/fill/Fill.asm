@@ -9,6 +9,8 @@
 // the screen should be cleared.
 
 // store the last register's address + 1. which is = RAM[l]
+@SCREEN 
+D = A 
 @l 
 M = D 
 @8192 
@@ -16,59 +18,68 @@ D = A
 @l 
 M = M + D
 
-(CHECK)
+(CHECKKBD) 
 
-@SCREEN 
-D = A 
-@i 
-M = D 
+    @SCREEN 
+    D = A 
+    @i 
+    M = D
 
-@KBD 
-D = M 
-@FILL
-D; JNE 
- 
-@CLEAR 
-0; JMP 
+    @KBD 
+    D = M 
+    @FILL 
+    D; JNE 
 
-(FILL)
+    @IFCLEAR 
+    0; JMP 
+
+(FILL) 
+    @i 
+    A = M 
+    M = -1 
+
+    @i 
+    M = M + 1 
+    @FLOOP 
+    0; JMP 
+
+(FLOOP)
     @i 
     D = M 
     @l 
     D = D - M 
-    @FLOOP
+    @FILL 
     D; JLT 
-    @CHECK 
+
+    @CHECKKBD 
     0; JMP 
 
-(FLOOP) 
+(IFCLEAR)
+    @SCREEN
+    D = M 
+    @CLEAR 
+    D; JNE 
+
+    @CHECKKBD 
+    0; JMP 
+
+(CLEAR) 
     @i 
     A = M 
-    M = -1
+    M = 0 
+
     @i 
-    M = M + 1
-    @FILL 
+    M = M + 1 
+    @CLOOP 
     0; JMP 
 
-(CLEAR)
+(CLOOP) 
     @i 
-    D = M
+    D = M 
     @l 
     D = D - M 
-    @CLOOP
+    @CLEAR 
     D; JLT 
-    @END 
-    0; JMP 
 
-(CLOOP)
-    @i 
-    A = M 
-    M = -1
-    @i 
-    M = M +1
-    @CLEAR  
-    0; JMP 
-
-(END) 
-    @END 
-    0; JMP 
+    @CHECKKBD 
+    0; JMP  
