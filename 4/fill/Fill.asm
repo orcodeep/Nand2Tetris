@@ -8,11 +8,6 @@
 // i.e. writes "black" in every pixel. When no key is pressed, 
 // the screen should be cleared.
 
-@SCREEN 
-D = A 
-@i 
-A = D 
-
 // store the last register's address + 1. which is = RAM[l]
 @l 
 M = D 
@@ -21,43 +16,43 @@ D = A
 @l 
 M = M + D
 
-@KBD 
-D = M 
-@FILL
-D; JNE 
+(CHECK)
 
 @SCREEN 
 D = A 
 @i 
-A = D 
+M = D 
+
+@KBD 
+D = M 
+@FILL
+D; JNE 
+ 
 @CLEAR 
 0; JMP 
 
 (FILL)
     @i 
-    D = A
+    D = M 
     @l 
     D = D - M 
     @FLOOP
     D; JLT 
-    @SCREEN 
-    D = A 
-    @i 
-    A = D
+    @CHECK 
+    0; JMP 
 
 (FLOOP) 
     @i 
-    M = 1
-    @16 
-    D = A 
+    A = M 
+    M = -1
     @i 
-    A = D + A 
+    M = M + 1
     @FILL 
     0; JMP 
 
 (CLEAR)
     @i 
-    D = A
+    D = M
     @l 
     D = D - M 
     @CLOOP
@@ -67,11 +62,10 @@ A = D
 
 (CLOOP)
     @i 
-    M = 1
-    @16 
-    D = A 
+    A = M 
+    M = -1
     @i 
-    A = D + A 
+    M = M +1
     @CLEAR  
     0; JMP 
 
