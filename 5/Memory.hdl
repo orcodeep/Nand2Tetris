@@ -30,36 +30,22 @@ CHIP Memory {
     // which are made from bit chips. and a bit chip only gives the input of a cycle 
     // as output of the next cycle. so when we made Memory.hdl using RAM chips the output 
     // is taken care of internally. 
-
-    // NOTE- for a bit number n. calculating 2^(n) is same as setting only that bit = 1 
-    // and all the else = 0 
     
     // now how do i specify the range of address for a memory part ?? 
     // for every n bits u can use it to make 2^(n) choices. 
-    // to represent value upto 2^(n)-1 u need n-1 bits and 2^(14) = 16384. 
-    // so u can represent 16k with 13 bits. 16k registers mean 0 to 16383. 
-    // so UPPER limit of RAM16K is such that the 2 MSB's are = 0 and 
-    // all else = 1. So if any register is located in RAM16K its address will never have 
-    // the 2MSB = 1 ever. not any one of them. The permutations of the rest of the bits 
-    // will make its address.
+    // and u can represent value upto 2^(n)-1 with n bits and 2^(14) = 16384.
+    // but if u include zero then 16383 is max. 
+    // so u can represent 16k with 14 bits. 16k registers mean 0 to 16383. 
+    // so UPPER limit of RAM16K is such that the MSB is = 0 and 
+    // all else = 1. so 2^(14)'s place = 0 always. 
 
-    // the UPPER limit of SCREEN 8k is such that the 15th and 13th bits are = 0 
-    // and all else = 1. so if any register is located in SCREEN then the register's 
-    // address will never have the 15th OR 13th bits = 1. But the 14th
-    // bit will always be = 1 and along with it the permutations of the other 
-    // bits will make the address of the register. 
+    // the UPPER limit of SCREEN 8k is such that the 15th bit = 1
+    // and 14th bit = 0. i.e 2^(13)'s place = 0 and 2^(14)'s place = 1 always 
 
     // and for the KBD the address only addresses that register if only and only the 
     // bits 14 and 13 = 1 and all else = 0. 
 
-    // so first we will check if MSB = 0. if not 
-
-    RAM16K(in = in, load = load, address = address[0..13], out = outram);
-    Screen(in = in, load = load, address = address[0..12], out = outscreen);
-    Keyboard(out = outkey);
-
-    Mux16(a = outram, b = outscreen, sel = address[14], out = ramorscreen);
-    Mux16(a = ramorscreen, b = outkey, sel = address[13], out = out);
+    //// load must only be passed to the correct chip part 
 
 
 
