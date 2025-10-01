@@ -1,11 +1,11 @@
 *.tst
 *.cmp
 *.out
+*.hack
 .DS_Store
 0/
 1/
 2/
-5/
 6/
 7/
 8/
