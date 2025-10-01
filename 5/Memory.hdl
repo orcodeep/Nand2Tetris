@@ -52,9 +52,14 @@ CHIP Memory {
     // and for the KBD the address only addresses that register if only and only the 
     // bits 14 and 13 = 1 and all else = 0. 
 
+    // so first we will check if MSB = 0. if not 
 
+    RAM16K(in = in, load = load, address = address[0..13], out = outram);
+    Screen(in = in, load = load, address = address[0..12], out = outscreen);
+    Keyboard(out = outkey);
 
-
+    Mux16(a = outram, b = outscreen, sel = address[14], out = ramorscreen);
+    Mux16(a = ramorscreen, b = outkey, sel = address[13], out = out);
 
 
 
