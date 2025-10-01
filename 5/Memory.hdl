@@ -31,12 +31,15 @@ CHIP Memory {
     // as output of the next cycle. so when we made Memory.hdl using RAM chips the output 
     // is taken care of internally. 
 
+    // NOTE- for a bit number n. calculating 2^(n) is same as setting only that bit = 1 
+    // and all the else = 0 
+    
     // now how do i specify the range of address for a memory part ?? 
     // for every n bits u can make 2^(n) choices but u can only represent  
     // value upto 2^(n)-1 .. u can represent 16k with 14 bits. 16k registers 
     // mean 0 to 16383 and so 2^(14) - 1 = 16383. 
     // so UPPER limit of RAM16K is such that the 2 MSB's are = 0 and 
-    // all else = 1. so if any register is located in RAM16K its address will never have 
+    // all else = 1. So if any register is located in RAM16K its address will never have 
     // the 2MSB = 1 ever. not any one of them. The permutations of the rest of the bits 
     // will make its address.
 
@@ -49,6 +52,7 @@ CHIP Memory {
     // and for the KBD the address only addresses that register if only and only the 
     // bits 14 and 13 = 1 and all else = 0. 
 
+    
 
 
 
