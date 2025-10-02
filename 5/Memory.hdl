@@ -51,7 +51,9 @@ CHIP Memory {
     // for screen: 14: 1, 13: 0 
     // for kbd:    14: 1, 13: 1
 
-    // we have to figure out way to load properly
+    // we have to figure out way to load properly 
+    // else if loading is not correct multiple addresses which we didnt mean to write to 
+    // may get written (loaded) 
     Not(in = address[14], out = ifloadram);
     Not(in = address[13], out = not13);
     And(a = address[14], b = not13, out = ifloadscreen); 
