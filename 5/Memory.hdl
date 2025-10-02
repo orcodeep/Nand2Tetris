@@ -47,6 +47,17 @@ CHIP Memory {
 
     //// load must only be passed to the correct chip part 
 
+    // for ram:    14: 0, 13: 0 or 1
+    // for screen: 14: 1, 13: 0 
+    // for kbd:    14: 1, 13: 1
 
 
+    RAM16K(in = in, load = false, address = address[0..13], out = ramout);
+    Screen(in = in, load = false, address = address[0..12], out = scout);
+    Keyboard(out = keyout);
+    Mux4Way16(a = ramout, b = ramout, c = scout, d = keyout, sel[0] = address[14], sel[1] = address[13], out = out);
+
+    DMux(in = load, sel = address[14], a = iflram, b = iflscreen);
+    RAM16K(in = in, load = iflram, address = address[0..13], out = nooutram);
+    Screen(in = in, load = iflscreen, address = address[0..12], out = nooutsc);
 }
