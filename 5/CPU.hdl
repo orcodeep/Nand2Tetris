@@ -33,11 +33,16 @@ CHIP CPU {
 
     PARTS:
     
+    // the A register will be loaded with the instruction without checking the
+    // destination bit if the instruction is an 'a' instruction. 
+    // if its a 'c' instruction then the destination bit will be checked.
     Not(in = instruction[15], out = ifAinstruction);
     Mux16(a = aluOutput , b = instruction, sel = ifAinstruction, out = inRegA);
     Mux(a = instruction[5], b = true, sel = ifAinstruction, out = loadA);
     ARegister(in = inRegA, load = loadA, out = outRegA, out[0..14] = addressM);
 
+    // the D register is always the x input according to the hack 
+    // specification and the A or M register is the y input. 
     DRegister(in = aluOutput, load = instruction[4], out = outRegD, out = alux);
     Mux16(a = outRegA, b = inM, sel = instruction[12], out = aluy);
 
@@ -45,18 +50,19 @@ CHIP CPU {
     zy = instruction[9], ny = instruction[8], f = instruction[7], 
     no = instruction[6], out = aluOutput, out = outM, zr = zr, ng = ng);
 
-    // if its a c instruction check 3rd dest bit to write 
+    // if its a c instruction check 3rd destination bit to write.
+    // if its an 'a' instruction then do not write.
     And(a = instruction[15], b = instruction[3], out = writeM);
 
 
     //// PC Implementation:- 
 
-    // load logic 
-
+    // load logic
     // we will first check if the instructionn was a c 
     // if the instruction was not a c then just inc the current stored value dont look at input
     // if the instruction was a c and the jump cond is met then load the value stored in ARegister 
 
+    // needed for jump cond calculation 
     Not(in = instruction[2], out = Nj2);
     Not(in = instruction[1], out = Nj1);
     Not(in = instruction[0], out = Nj0);
@@ -70,13 +76,13 @@ CHIP CPU {
     And(a = JGTs3, b = Nng, out = JGT);
 
     // JEQ: 010 and (zr=1)
-    And(a = Nj1, b = instruction[1], out = JEQs1);
+    And(a = Nj2, b = instruction[1], out = JEQs1);
     And(a = JEQs1, b = Nj0, out = JEQs2);
     And(a = JEQs2, b = zr, out = JEQs3);
     And(a = JEQs3, b = Nng, out = JEQ);
 
     // JGE: 011 and (zr=1 or ng=0)
-    And(a = Nj1, b = instruction[1], out = condGE1);
+    And(a = Nj2, b = instruction[1], out = condGE1);
     And(a = condGE1, b = instruction[0], out = condGE2);
     And(a = condGE2, b = Nng, out = JGE);
 
@@ -86,31 +92,36 @@ CHIP CPU {
     And(a = JLTs2, b = Nzr, out = JLTs3);
     And(a = JLTs3, b = ng, out = JLT);
 
+    // JNE 
+    And(a = instruction[2], b = Nj1, out = JNEs1);
+    And(a = JNEs1, b = instruction[0], out = JNEs2);
+    And(a = JNEs2, b = Nzr, out = JNE);
+
     // JLE 
     And(a = instruction[2], b = instruction[1], out = JLEs1);
     And(a = JLEs1, b = Nj0, out = JLEs2);
     Or(a = zr, b = ng, out = JLEo1);
     And(a = JLEs2, b = JLEo1, out = JLE);
 
-    // JNE 
-    And(a = instruction[2], b = Nj1, out = JNEs1);
-    And(a = JNEs1, b = instruction[0], out = JNEs2);
-    And(a = JNEs2, b = Nzr, out = JNE);
-
-    // J unconditionally 
+    // JMP unconditionally 
     And(a = instruction[2], b = instruction[1], out = Js1);
-    And(a = Js1, b = instruction[0], out = J);
+    And(a = Js1, b = instruction[0], out = JMP);
 
     Or(a = JGT, b = JEQ, out = or1);
-    Or(a = or1, b = JLT, out = or2);
-    Or(a = or2, b = JLE, out = or3);
-    Or(a = or3, b = JGE, out = or4);
-    Or(a = or4, b = JNE, out = or5);
-    Or(a = or5, b = J, out = loadpc);
+    Or(a = or1, b = JGE, out = or2);
+    Or(a = or2, b = JLT, out = or3);
+    Or(a = or3, b = JNE, out = or4);
+    Or(a = or4, b = JLE, out = or5);
+    Or(a = or5, b = JMP, out = loadpc);
 
-    Not(in = ifAinstruction, out = ifCinstruction);
-    And(a = ifCinstruction, b = loadpc, out = ifload); 
-    Not(in = ifload, out = ifinc);   
+    // if the instruction is a 'a' instruction then pc just increments
+    // the last value but if the instruction is a 'c' instruction then 
+    // the ARegister value is loaded into the PC if the jump condition 
+    // is met. 
+    And(a = instruction[15], b = loadpc, out = ifload); // Not(ifAinstruction) = instruction[15]
+    Not(in = ifload, out = ifinc); // if jump cond not met just increment 
+    // althoutgh ifinc is not needed as the PC is made such as if load = 1 then 
+    // even if inc = 1 we still load. so PC(.., inc = true, ...); will also work. 
 
     PC(in = outRegA, inc = ifinc, load = ifload, reset = reset, out[0..14] = pc);
 }
