@@ -38,8 +38,8 @@ CHIP CPU {
     Mux(a = instruction[5], b = true, sel = ifAinstruction, out = loadA);
     ARegister(in = inRegA, load = loadA, out = outRegA, out[0..14] = addressM);
 
-    DRegister(in = aluOutput, load = instruction[4], out = outRegD, out = aluy);
-    Mux16(a = outRegA, b = inM, sel = instruction[12], out = alux);
+    DRegister(in = aluOutput, load = instruction[4], out = outRegD, out = alux);
+    Mux16(a = outRegA, b = inM, sel = instruction[12], out = aluy);
 
     ALU(x = alux, y = aluy, zx = instruction[11], nx = instruction[10], 
     zy = instruction[9], ny = instruction[8], f = instruction[7], 
@@ -70,15 +70,15 @@ CHIP CPU {
     And(a = JGTs3, b = Nng, out = JGT);
 
     // JEQ: 010 and (zr=1)
-    And(a = Nj1, b = instruction[1], out = condE1);
-    And(a = condE1, b = Nj0, out = condE2);
-    And(a = condE2, b = zr, out = JEQ);
+    And(a = Nj1, b = instruction[1], out = JEQs1);
+    And(a = JEQs1, b = Nj0, out = JEQs2);
+    And(a = JEQs2, b = zr, out = JEQs3);
+    And(a = JEQs3, b = Nng, out = JEQ);
 
     // JGE: 011 and (zr=1 or ng=0)
     And(a = Nj1, b = instruction[1], out = condGE1);
     And(a = condGE1, b = instruction[0], out = condGE2);
-    Or(a = zr, b = Nng, out = Zge);  // zr=1 or ng=0
-    And(a = condGE2, b = Zge, out = JGE);
+    And(a = condGE2, b = Nng, out = JGE);
 
     // JLT 
     And(a = instruction[2], b = Nj1, out = JLTs1);
@@ -112,5 +112,5 @@ CHIP CPU {
     And(a = ifCinstruction, b = loadpc, out = ifload); 
     Not(in = ifload, out = ifinc);   
 
-    PC(in = outRegA, inc = ifinc, load = ifload, reset = reset, out[1..15] = pc);
+    PC(in = outRegA, inc = ifinc, load = ifload, reset = reset, out[0..14] = pc);
 }
