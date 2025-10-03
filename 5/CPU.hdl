@@ -69,19 +69,19 @@ CHIP CPU {
     Not(in = zr, out = Nzr);
     Not(in = ng , out = Nng);
 
-    // JGT cond 
+    // JGT 
     And(a = Nj2, b = Nj1, out = JGTs1);
     And(a = JGTs1, b = instruction[0], out = JGTs2);
     And(a = JGTs2, b = Nzr, out = JGTs3);
     And(a = JGTs3, b = Nng, out = JGT);
 
-    // JEQ: 010 and (zr=1)
+    // JEQ
     And(a = Nj2, b = instruction[1], out = JEQs1);
     And(a = JEQs1, b = Nj0, out = JEQs2);
     And(a = JEQs2, b = zr, out = JEQs3);
     And(a = JEQs3, b = Nng, out = JEQ);
 
-    // JGE: 011 and (zr=1 or ng=0)
+    // JGE
     And(a = Nj2, b = instruction[1], out = condGE1);
     And(a = condGE1, b = instruction[0], out = condGE2);
     And(a = condGE2, b = Nng, out = JGE);
