@@ -4,7 +4,7 @@
 
 typedef struct lineNode {
 
-    int* line;
+    char* line;
     int n; // linenumber
     struct lineNode* next;
 } lineNode; 
@@ -26,7 +26,7 @@ int fileopen(char* filename)
     
     int initial_size = 4;
     size_t size = initial_size; // this is the min. ex:- @R10
-    int* line = malloc(size*sizeof(int));
+    char* line = malloc(size*sizeof(char));
     lineNode* linenode = malloc(sizeof(lineNode));
     linenode->line = line; // point the first linenode to this first line buffer.
     linenode->next = NULL;
@@ -46,7 +46,7 @@ int fileopen(char* filename)
         if (char_number >= size)
         {
             size += 20;
-            int* temp = realloc(line, size*sizeof(int)); // +20 the size of buffer
+            char* temp = realloc(line, size*sizeof(char)); // +20 the size of buffer
             if (temp == NULL)
             {
                 free(line);
@@ -61,34 +61,45 @@ int fileopen(char* filename)
         // then end of line. now make new node for next line and reset all counters.
         if (c == '\n')
         {
-            line[buffer_index] = '\0'; // make it a c string
-            current_linenode->n = line_number;
-            if (!(line[buffer_index - 1] == ')'))
-                line_number++;
-            char_number = 1;
-            buffer_index = 0;
-            size = initial_size;
-            line = malloc(size);
-
-            lineNode* new_linenode = malloc(sizeof(lineNode));
-            current_linenode->next = new_linenode;
-            new_linenode->line = line;
-            new_linenode->next = NULL;
-            current_linenode = new_linenode;
-            
-            continue;
+            // if no character before it 
+            if (buffer_index == 0)
+            {
+                continue;
+            }
+            else
+            {
+                line[buffer_index] = '\0'; // make it a c string
+                current_linenode->n = line_number;
+                if (!(line[buffer_index - 1] == ')'))
+                    line_number++;
+                char_number = 1;
+                buffer_index = 0;
+                size = initial_size;
+                line = malloc(size);
+    
+                lineNode* new_linenode = malloc(sizeof(lineNode));
+                current_linenode->next = new_linenode;
+                new_linenode->line = line;
+                new_linenode->next = NULL;
+                current_linenode = new_linenode;
+                continue;
+            }
         } 
-        else if (c == ' ')
+        else if (c == ' ' || c == '\t')
         {
             continue;
         }    
+        else if (c == '/')
+        {
+
+        }
         
         else
         {
             char_number++;
             buffer_index++;
             // ch = (char) c; 
-            line[buffer_index] = c;
+            line[buffer_index] = (char) c;
         }
     }
 
