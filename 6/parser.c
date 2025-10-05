@@ -26,12 +26,35 @@ int fileopen(char* filename)
     if(fileptr == NULL)
         return 1;
     
-    char* buffer = malloc(2 * sizeof(char));
+    size_t size = 2 * sizeof(char); 
+    char* buffer = malloc(size);
 
     int c;
     char ch;
+    int i = 1;
+    int buffer_index;
     while((c = fgetc(fileptr)) != EOF)
     {
-        ch = (char) c;
+        
+        if (i > size)
+        {
+            char* temp = realloc(buffer, i*sizeof(char));
+            if (temp == NULL)
+            {
+                free(buffer);
+                return 2;
+            }
+            buffer = temp;
+        }
+
+
+
+        buffer_index = i-1;
+        ch = (char) c; 
+        buffer[buffer_index] = ch;
+
+
+
+        i++;
     }
 }
