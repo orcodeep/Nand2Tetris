@@ -4,7 +4,7 @@
 
 typedef struct lineNode {
 
-    char* line;
+    int* line;
     int n; // linenumber
     struct lineNode* next;
 } lineNode; 
@@ -26,15 +26,15 @@ int fileopen(char* filename)
     
     int initial_size = 4;
     size_t size = initial_size; // this is the min. ex:- @R10
-    char* line = malloc(size*sizeof(char));
+    int* line = malloc(size*sizeof(int));
     lineNode* linenode = malloc(sizeof(lineNode));
     linenode->line = line; // point the first linenode to this first line buffer.
-    linenode->n = 1;
     linenode->next = NULL;
 
     int c;
     char ch;
-    int i = 1;
+    int char_number = 1;
+    int line_number = 0;
     int buffer_index = 0;
     lineNode* current_linenode = linenode;
     while((c = fgetc(fileptr)) != EOF)
@@ -43,10 +43,10 @@ int fileopen(char* filename)
         // check if line size >= buffer size. >= because 
         // if i = size and next character = '\0' then
         // the last line buffer wont be '\0' terminated.
-        if (i >= size)
+        if (char_number >= size)
         {
             size += 20;
-            char* temp = realloc(line, size*sizeof(char)); // +20 the size of buffer
+            int* temp = realloc(line, size*sizeof(int)); // +20 the size of buffer
             if (temp == NULL)
             {
                 free(line);
@@ -62,27 +62,34 @@ int fileopen(char* filename)
         if (c == '\n')
         {
             line[buffer_index] = '\0'; // make it a c string
-
-            i = 1;
+            current_linenode->n = line_number;
+            if (!(line[buffer_index - 1] == ')'))
+                line_number++;
+            char_number = 1;
             buffer_index = 0;
             size = initial_size;
             line = malloc(size);
 
             lineNode* new_linenode = malloc(sizeof(lineNode));
             current_linenode->next = new_linenode;
-            (new_linenode)->line = line;
-            new_linenode->n = current_linenode->n + 1;
+            new_linenode->line = line;
             new_linenode->next = NULL;
             current_linenode = new_linenode;
             
             continue;
-        }
+        } 
+        else if (c == ' ')
+        {
+            continue;
+        }    
         
-
-        i++;
-        buffer_index = i-1;
-        ch = (char) c; 
-        line[buffer_index] = ch;
+        else
+        {
+            char_number++;
+            buffer_index++;
+            // ch = (char) c; 
+            line[buffer_index] = c;
+        }
     }
 
     // but what about '\0' and no '\n' before it?deosnt matter 
