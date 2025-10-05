@@ -2,7 +2,6 @@
 #include <stdbool.h>
 
 
-
 typedef struct lineNode {
 
     char* line;
@@ -14,11 +13,7 @@ typedef struct lineNode {
 int fileopen(char* filename);
 
 
-
-
-
-// first open the .asm file and read and store in linked list then return ptr to 
-// this linked list
+// open the .asm file and read and store in a linked list & return ptr to this linked list.
 int fileopen(char* filename)
 {
     FILE* fileptr = fopen(filename, "r");
@@ -46,14 +41,14 @@ int fileopen(char* filename)
     int char_number = 1;
     int line_number = 0;
     int buffer_index = 0;
+    int lastbi;             // last buffer_index 
     lineNode* current_linenode = linenode;
     bool comment_text = false;
     while((c = fgetc(fileptr)) != EOF)
     {
 
-        // check if line size >= buffer size. >= because 
-        // if i = size and next character = '\0' then
-        // the last line buffer wont be '\0' terminated.
+        // check if line size >= buffer size. >= because if i = size and next character is
+        // = '\0' then the last line buffer wont be '\0' terminated.
         if (char_number >= size)
         {
             size += 20;
@@ -129,12 +124,12 @@ int fileopen(char* filename)
             line[buffer_index] = (char) c;
             char_number++;
             buffer_index++;
+            lastbi = buffer_index;
         }
     }
-
-    // but what about '\0' and no '\n' before it?deosnt matter 
-    // if a string ends with two '\0' so set the last character 
-    // of the last line buffer = '\0' for every asm file.
+    // but what about '\0' with no '\n' before it? we just write it to tht index of EOF.
+    // if there was \n before \0 we just rewrite the \0 written by \n in the line.
+    line[lastbi] = '\0';
 
 
 }
