@@ -24,9 +24,9 @@ int fileopen(char* filename)
     if(fileptr == NULL)
         return 1;
     
-    int initial_size = 4 * sizeof(char);
+    int initial_size = 4;
     size_t size = initial_size; // this is the min. ex:- @R10
-    char* line = malloc(size);
+    char* line = malloc(size*sizeof(char));
     lineNode* linenode = malloc(sizeof(lineNode));
     linenode->line = line; // point the first linenode to this first line buffer.
     linenode->n = 1;
@@ -39,31 +39,14 @@ int fileopen(char* filename)
     lineNode* current_linenode = linenode;
     while((c = fgetc(fileptr)) != EOF)
     {
-        // check if end of a line end reached i.e '\n' (newline character) encountered then end of line
-        if (c == '\n')
-        {
-            line[buffer_index] = '\0'; // make it a c string
 
-            i = 1;
-            size = initial_size;
-            line = malloc(size);
-
-            lineNode* new_linenode = malloc(sizeof(lineNode));
-            current_linenode->next = new_linenode;
-            (new_linenode)->line = line;
-            new_linenode->n = current_linenode->n + 1;
-            new_linenode->next = NULL;
-            current_linenode = new_linenode;
-            
-            buffer_index = 0;
-            continue;
-        }
-        
-        // check if line size > buffer size
-        if (i*sizeof(char) > size)
+        // check if line size >= buffer size. >= because 
+        // if i = size and next character = '\0' then
+        // the last line buffer wont be '\0' terminated.
+        if (i >= size)
         {
-            size *= 2;
-            char* temp = realloc(line, size); // 2x the size of buffer
+            size += 20;
+            char* temp = realloc(line, size*sizeof(char)); // +20 the size of buffer
             if (temp == NULL)
             {
                 free(line);
@@ -74,9 +57,37 @@ int fileopen(char* filename)
         }
 
 
+        // check if end of a line end reached i.e '\n' (newline character) encountered 
+        // then end of line. now make new node for next line and reset all counters.
+        if (c == '\n')
+        {
+            line[buffer_index] = '\0'; // make it a c string
+
+            i = 1;
+            buffer_index = 0;
+            size = initial_size;
+            line = malloc(size);
+
+            lineNode* new_linenode = malloc(sizeof(lineNode));
+            current_linenode->next = new_linenode;
+            (new_linenode)->line = line;
+            new_linenode->n = current_linenode->n + 1;
+            new_linenode->next = NULL;
+            current_linenode = new_linenode;
+            
+            continue;
+        }
+        
+
         i++;
         buffer_index = i-1;
         ch = (char) c; 
         line[buffer_index] = ch;
     }
+
+    // but what about '\0' and no '\n' before it?deosnt matter 
+    // if a string ends with two '\0' so set the last character 
+    // of the last line buffer = '\0' for every asm file.
+
+
 }
