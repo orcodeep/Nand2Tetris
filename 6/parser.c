@@ -1,37 +1,55 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 
 typedef struct lineNode {
-
+    
     char* line;
     int n; // linenumber
     struct lineNode* next;
 } lineNode; 
 
 
-int fileopen(char* filename);
+lineNode* fileopen(char* filename);
 
+// just for testing
+int main(int argc, char* argv[])
+{
+    if (argc != 2)
+    {
+        printf("Error: Unknown CMD line argument format\n");
+        printf("Usage: ./parser filename.asm\n");
+        return 1;
+    }
+
+    lineNode* line = fileopen(argv[argc - 1]);
+    lineNode* current_line = line;
+    while(current_line != NULL)
+    {
+        printf("%s\n", current_line->line);
+        // printf("%i\n",  current_line->n);
+        current_line = current_line->next;
+    }
+}
 
 // open the .asm file and read and store in a linked list & return ptr to this linked list.
-int fileopen(char* filename)
+lineNode* fileopen(char* filename)
 {
     FILE* fileptr = fopen(filename, "r");
     if(fileptr == NULL)
-        return 1;
+        return NULL;
     
     int initial_size = 4;
-    size_t size = initial_size; // this is the min. ex:- @R10
+    size_t size = initial_size;
     char* line = malloc(size*sizeof(char));
     if (line == NULL)
-    {
-        return 2;
-    }
+        return NULL;
     lineNode* linenode = malloc(sizeof(lineNode));
     if (linenode == NULL)
     {
         free(line);
-        return 2;
+        return NULL;
     }
     linenode->line = line; // point the first linenode to this first line buffer.
     linenode->next = NULL;
@@ -56,21 +74,22 @@ int fileopen(char* filename)
             if (temp == NULL)
             {
                 free(line);
-                return 2;
+                return NULL;
             }
 
             line = temp;
             current_linenode->line = line;
         }
+
         if (c == '/')
         {
             comment_text = true;
+            continue;
         }
  
         if (c == ' ' || c == '\t' || (c != '\n' && comment_text))
-        {
-            continue;
-        }    
+            continue;  
+
         // check if end of a line end reached i.e '\n' (newline character) encountered 
         // then end of line. now make new node for next line and reset all counters.
         else if (c == '\n')
@@ -90,10 +109,10 @@ int fileopen(char* filename)
                 char_number = 1;
                 buffer_index = 0;
                 size = initial_size;
-                char* tmp = realloc(line, size*sizeof(char));
+                char* tmp = malloc(size*sizeof(char));
                 if (tmp == NULL)
                 {
-                    return 2;
+                    return NULL;
                 }
                 line = tmp;
 
@@ -109,7 +128,7 @@ int fileopen(char* filename)
                         free(freeptr);
                         freeptr = linenode;
                     }
-                    return 2;
+                    return NULL;
                 }
                 new_linenode->next = NULL;
                 current_linenode->next = new_linenode;
@@ -131,5 +150,6 @@ int fileopen(char* filename)
     // if there was \n before \0 we just rewrite the \0 written by \n in the line.
     line[lastbi] = '\0';
 
-
+    return linenode;
 }
+
