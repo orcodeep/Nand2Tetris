@@ -2,6 +2,14 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
+/*
+IMP COMMENTS
+
+On windows to end a line "\r\n" is used (carriage return and linefeed)
+On linux and modern macs end of line is denoted by "\n" (just linefeed)
+To handle this difference we ignore \r altogether so that all line ends
+are denoted by "\n"
+*/
 
 typedef struct lineNode {
     
@@ -27,7 +35,7 @@ int main(int argc, char* argv[])
     lineNode* current_line = line;
     while(current_line != NULL)
     {
-        printf("%s\n", current_line->line);
+        printf("%s, %i\n", current_line->line, current_line->n);
         // printf("%i\n",  current_line->n);
         current_line = current_line->next;
     }
@@ -55,13 +63,12 @@ lineNode* fileopen(char* filename)
     linenode->next = NULL;
 
     int c;
-    char ch;
     int char_number = 1;
     int line_number = 0;
     int buffer_index = 0;
     int lastbi;             // last buffer_index 
     lineNode* current_linenode = linenode;
-    bool comment_text = false;
+    bool comment = false;
     while((c = fgetc(fileptr)) != EOF)
     {
 
@@ -83,23 +90,22 @@ lineNode* fileopen(char* filename)
 
         if (c == '/')
         {
-            comment_text = true;
+            comment = true;
             continue;
         }
  
-        if (c == ' ' || c == '\t' || (c != '\n' && comment_text))
+        if (c == '\r' || c == ' ' || c == '\t' || (c != '\n' && comment))
             continue;  
 
         // check if end of a line end reached i.e '\n' (newline character) encountered 
         // then end of line. now make new node for next line and reset all counters.
         else if (c == '\n')
         {
-            comment_text = false;
+            comment = false;
             // if no character before it 
             if (buffer_index == 0)
-            {
                 continue;
-            }
+            
             else
             {
                 line[buffer_index] = '\0'; // make it a c string
@@ -109,6 +115,7 @@ lineNode* fileopen(char* filename)
                 char_number = 1;
                 buffer_index = 0;
                 size = initial_size;
+
                 char* tmp = malloc(size*sizeof(char));
                 if (tmp == NULL)
                 {
@@ -130,17 +137,16 @@ lineNode* fileopen(char* filename)
                     }
                     return NULL;
                 }
+                new_linenode->line = line;
                 new_linenode->next = NULL;
                 current_linenode->next = new_linenode;
-                new_linenode->line = line;
                 current_linenode = new_linenode;
                 continue;
             }
         } 
         else
         {
-            // ch = (char) c; 
-            line[buffer_index] = (char) c;
+            line[buffer_index] = c;
             char_number++;
             buffer_index++;
             lastbi = buffer_index;
