@@ -8,7 +8,8 @@ IMP COMMENTS
 On windows to end a line "\r\n" is used (carriage return and linefeed)
 On linux and modern macs end of line is denoted by "\n" (just linefeed)
 To handle this difference we ignore \r altogether so that all line ends
-are denoted by "\n"
+are denoted by "\n". so when u go to print the lines and other data along
+with it doesnt show weird behaviour.
 */
 
 typedef struct lineNode {
@@ -20,26 +21,6 @@ typedef struct lineNode {
 
 
 lineNode* fileopen(char* filename);
-
-// just for testing
-int main(int argc, char* argv[])
-{
-    if (argc != 2)
-    {
-        printf("Error: Unknown CMD line argument format\n");
-        printf("Usage: ./parser filename.asm\n");
-        return 1;
-    }
-
-    lineNode* line = fileopen(argv[argc - 1]);
-    lineNode* current_line = line;
-    while(current_line != NULL)
-    {
-        printf("%s, %i\n", current_line->line, current_line->n);
-        // printf("%i\n",  current_line->n);
-        current_line = current_line->next;
-    }
-}
 
 // open the .asm file and read and store in a linked list & return ptr to this linked list.
 lineNode* fileopen(char* filename)
@@ -66,7 +47,6 @@ lineNode* fileopen(char* filename)
     int char_number = 1;
     int line_number = 0;
     int buffer_index = 0;
-    int lastbi;             // last buffer_index 
     lineNode* current_linenode = linenode;
     bool comment = false;
     while((c = fgetc(fileptr)) != EOF)
@@ -76,8 +56,8 @@ lineNode* fileopen(char* filename)
         // = '\0' then the last line buffer wont be '\0' terminated.
         if (char_number >= size)
         {
-            size += 20;
-            char* temp = realloc(line, size*sizeof(char)); // +20 the size of buffer
+            size += 10;
+            char* temp = realloc(line, size*sizeof(char)); // +10 the size of buffer
             if (temp == NULL)
             {
                 free(line);
@@ -93,7 +73,7 @@ lineNode* fileopen(char* filename)
             comment = true;
             continue;
         }
- 
+
         if (c == '\r' || c == ' ' || c == '\t' || (c != '\n' && comment))
             continue;  
 
@@ -101,26 +81,36 @@ lineNode* fileopen(char* filename)
         // then end of line. now make new node for next line and reset all counters.
         else if (c == '\n')
         {
+
             comment = false;
+
             // if no character before it 
             if (buffer_index == 0)
-                continue;
-            
+                continue; 
+
             else
             {
                 line[buffer_index] = '\0'; // make it a c string
                 current_linenode->n = line_number;
+
                 if (!(line[buffer_index - 1] == ')'))
                     line_number++;
+                    
+                // if next char if eof font make new node. Break
+                int next = fgetc(fileptr);
+                if (next == EOF)
+                    break;
+                else
+                    ungetc(next, fileptr); // return the next char if its not EOF
+                                           // ungetc cant return EOF to fileptr
                 char_number = 1;
                 buffer_index = 0;
                 size = initial_size;
-
+                
                 char* tmp = malloc(size*sizeof(char));
                 if (tmp == NULL)
-                {
                     return NULL;
-                }
+
                 line = tmp;
 
                 lineNode* new_linenode = malloc(sizeof(lineNode));
@@ -144,18 +134,14 @@ lineNode* fileopen(char* filename)
                 continue;
             }
         } 
+
         else
         {
             line[buffer_index] = c;
             char_number++;
             buffer_index++;
-            lastbi = buffer_index;
         }
     }
-    // but what about '\0' with no '\n' before it? we just write it to tht index of EOF.
-    // if there was \n before \0 we just rewrite the \0 written by \n in the line.
-    line[lastbi] = '\0';
-
-    return linenode;
+    fclose(fileptr);
+    return linenode; // return head of list
 }
-
