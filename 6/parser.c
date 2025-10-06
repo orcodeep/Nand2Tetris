@@ -19,8 +19,21 @@ typedef struct lineNode {
     struct lineNode* next;
 } lineNode; 
 
+int total_instructions = 0;
 
 lineNode* fileopen(char* filename);
+
+int main(int argc, char* argv[])
+{
+    if (argc != 2)
+    {
+        printf("Error could not find file\n");
+        return 1;
+    }
+    fileopen(argv[argc-1]);
+    printf("%i\n", total_instructions);
+
+}
 
 // open the .asm file and read and store in a linked list & return ptr to this linked list.
 lineNode* fileopen(char* filename)
@@ -45,8 +58,8 @@ lineNode* fileopen(char* filename)
 
     int c;
     int char_number = 1;
-    int line_number = 0;
     int buffer_index = 0;
+    int line_number = 0;
     lineNode* current_linenode = linenode;
     bool comment = false;
     while((c = fgetc(fileptr)) != EOF)
@@ -143,5 +156,6 @@ lineNode* fileopen(char* filename)
         }
     }
     fclose(fileptr);
+    total_instructions = line_number;
     return linenode; // return head of list
 }
