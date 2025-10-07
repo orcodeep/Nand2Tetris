@@ -58,29 +58,97 @@ symval initial_symbols[] = {
 int total_instructions = 0;
 
 lineNode* fileopen(int arg_no ,char* filename);
-lineNode* firstpass(lineNode* head);
-symval* mksymbltabl(symval** tableptr,char* sym, int val, size_t* size);
+lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
+symval* mksymbltabl(symval** tableptr, char* sym, int val, size_t* size);
 
 int main(int argc, char* argv[])
 {
     // open the file & load all the lines 
     lineNode* lines = fileopen(argc, argv[argc - 1]);
-
+    lineNode* current = lines;
+    while(current != NULL)
+    {
+        printf("%s, %i\n", current->line, current->n);
+        current = current->next;
+    }
     // initialize the table
-    int stsize;
+    size_t stsize;
     symval* sttable = NULL;
     sttable = mksymbltabl(&sttable, NULL, 0, &stsize);
 
+    printf("\n\n");
+    for (size_t i = 0; i < stsize; i++)
+    {
+        printf("%s, %li\n", sttable[i].sym, sttable[i].val);
+    }
+
     // first pass 
+    printf("\n\n");
+    lines = firstpass(lines, &sttable, &stsize);
+    current = lines;
+    while(current != NULL)
+    {
+        printf("%s, %i\n", current->line, current->n);
+        current = current->next;
+    }
+
+    printf("\n\n");
+    for (int i = 0; i < stsize; i++)
+    {
+        printf("%s, %li\n", sttable[i].sym, sttable[i].val);
+    }
+    printf("\n\n");
     
 }
 
-lineNode* firstpass(lineNode* head)
+lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
 {
-    // in first pass we 
+    lineNode* current_linenode = head;
+    lineNode* tmp = current_linenode;
+    while(current_linenode != NULL)
+    {
+        if (current_linenode->line[0] != '(')
+        {
+            tmp = current_linenode;
+            current_linenode = current_linenode->next;
+            continue;
+        }
+
+        // if label detected
+        int i = 1;
+        while(current_linenode->line[i] != ')')
+            i++;
+
+        char* label = malloc(i*sizeof(char));
+        for(int j = 0; j < i-1; j++)
+            label[j] = current_linenode->line[j+1];
+
+        label[i-1] = '\0'; // now label contains the label symbol 
+
+        // now enter this symbol in the symbol table 
+        *tableptr = mksymbltabl(tableptr, label, current_linenode->n, sizeoftabl);
+        free(label);
+
+        // free this node 
+        if (current_linenode == head)
+        {
+            head = current_linenode->next;
+            tmp = current_linenode;
+            current_linenode = head;
+            free(tmp);
+            tmp = current_linenode;
+        }
+        else
+        {
+            tmp->next = current_linenode->next;
+            free(current_linenode);
+            current_linenode = tmp->next;
+        }
+    }
+    return head;
 }
 
-symval* mksymbltabl(symval** tableptr,char* sym, int val, size_t* size)
+symval* mksymbltabl(symval** tableptr, char* sym, int val, size_t* size)
 {
     symval* table;
     if (*tableptr == NULL)
