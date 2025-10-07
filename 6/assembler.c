@@ -30,7 +30,7 @@ int main(int argc, char* argv[])
         printf("Error could not find file\n");
         return 1;
     }
-    fileopen(argv[argc-1]);
+    lineNode* lines = fileopen(argv[argc-1]);
     printf("%i\n", total_instructions);
 
 }
