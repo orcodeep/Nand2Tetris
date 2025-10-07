@@ -16,6 +16,7 @@ typedef struct lineNode {
     
     char* line;
     int n; // linenumber
+    uint16_t instruction = 0;
     struct lineNode* next;
 } lineNode; 
 
@@ -27,10 +28,15 @@ int main(int argc, char* argv[])
 {
     if (argc != 2)
     {
-        printf("Error could not find file\n");
+        printf("Wrong usage\nuse: ./assembler filename.c\n");
         return 1;
     }
     lineNode* lines = fileopen(argv[argc-1]);
+    if (lines == NULL)
+    {
+        printf("File Not Found\n");
+        return 1;
+    }
     printf("%i\n", total_instructions);
 
 }
