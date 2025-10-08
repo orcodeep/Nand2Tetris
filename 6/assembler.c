@@ -86,12 +86,97 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
     uint8_t comp = 0;
     uint8_t jmp  = 0;
 
+    symval* table = *tableptr;
+
     // go to each linenode and check if its an "a" instruction or "c" instruction
     // if its "a" check if its value exists in symbol table if yes just translate 
     // its decimal value to binary, if no then put its value 16 onwards in the
     // symbol table and then translate. 
 
     // if its a c instruction then translate according to tokens.
+
+    size_t var_n = 16;                              // variable number
+    lineNode* current_linenode = head;
+    while (current_linenode != NULL)
+    {
+        // lets do the "a" instruction part first 
+        if (current_linenode->line[0] == '@')
+        {
+            int i = 1;
+            while(current_linenode->line[i] != '\0')
+                i++;
+
+            char* sym = malloc(i*sizeof(char));
+            for(int j = 0; j < i-1; j++)
+                sym[j] = current_linenode->line[j+1];
+
+            sym[i-1] = '\0'; // now sym contains the variable or label or predef symbol name 
+
+            // check if all digits or no  
+            bool isdigit = true;
+            size_t len = strlen(sym);
+            for (int i = 0; i < len; i++)
+            {
+                if (sym[i] >= '0' && sym[i] <= '9')
+                    continue;
+                else
+                {
+                    isdigit = false;
+                    break;
+                }
+            }
+
+            uint16_t binary;
+            bool intable = false;
+            // now translate and put in symbol table according to isdigit 
+
+            if (isdigit) // if its decimal value just translate and set instruction for this node and move to next linenode
+            {
+                binary = atoi(sym);
+                current_linenode->instruction = binary;
+                current_linenode = current_linenode->next;
+                free(sym);
+                continue;
+            }
+            else // check if already in symbol table if not put it in and translate and set instruction & move to next linenode
+            {
+                // if in table then tranaslate 
+                for (int i = 0; i < *sizeoftabl; i++)
+                {
+                    if (strcmp(table[i].sym, sym) == 0)
+                    {
+                        binary = table[i].val;
+                        intable = true;
+                        break;
+                    }
+                }
+
+                if (!intable)
+                {
+                    // put it in table 
+                    *tableptr = mksymbltabl(tableptr, sym, var_n, sizeoftabl);
+                    table = *tableptr;
+                    // translate 
+                    binary = var_n;
+                    var_n++;
+                } 
+
+                // set instruction and move to next linenode 
+                current_linenode->instruction = binary; 
+                current_linenode = current_linenode->next;
+                free(sym);
+                continue;
+            }
+        }
+
+        // now do "c" instruction 
+        else
+        {
+            
+        }
+
+        // output the file
+    }
 }
 
 
