@@ -107,10 +107,10 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
                 i++;
 
             char* sym = malloc(i*sizeof(char));
-            for(int j = 0; j < i-1; j++)
+            for(int j = 0; j < i; j++)
                 sym[j] = current_linenode->line[j+1];
 
-            sym[i-1] = '\0'; // now sym contains the variable or label or predef symbol name 
+            // now sym contains the variable or label or predef symbol name 
 
             // check if all digits or no  
             bool isdigit = true;
@@ -134,6 +134,10 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
             {
                 binary = atoi(sym);
                 current_linenode->instruction = binary & 0x7FFF; // & 0111 1111 1111 1111 to mask the bit15
+                for (int i = 15; i >= 0; i--) {
+                    printf("%d", (current_linenode->instruction >> i) & 1);
+                }
+                printf("\n");
                 current_linenode = current_linenode->next;
                 free(sym);
                 continue;
@@ -167,8 +171,8 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
                     printf("%d", (current_linenode->instruction >> i) & 1);
                 }
                 printf("\n");
-                current_linenode = current_linenode->next;
                 free(sym);
+                current_linenode = current_linenode->next;
 
             }
             continue;
@@ -295,6 +299,12 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
             current_linenode->instruction |= comp << 6;
             current_linenode->instruction |= dest << 3;
             current_linenode->instruction |= jump;
+
+            // print 
+            for (int i = 15; i >= 0; i--) {
+                printf("%d", (current_linenode->instruction >> i) & 1);
+            }
+            printf("\n");
 
             // move to next linenode
             current_linenode = current_linenode->next;
