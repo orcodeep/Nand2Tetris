@@ -28,32 +28,43 @@ typedef struct {
     size_t val;
 } symval;
 
+typedef struct {
+    char* sym;
+    uint8_t val;
+} bitval;
+
 symval initial_symbols[] = {
-    {"R0", 0},
-    {"R1", 1},
-    {"R2", 2},
-    {"R3", 3},
-    {"R4", 4},
-    {"R5", 5},
-    {"R6", 6},
-    {"R7", 7},
-    {"R8", 8},
-    {"R9", 9},
-    {"R10", 10},
-    {"R11", 11},
-    {"R12", 12},
-    {"R13", 13},
-    {"R14", 14},
-    {"R15", 15},
-    {"SCREEN", 16384},
-    {"KBD", 24576},
-    {"SP", 0},
-    {"LCL", 1},
-    {"ARG", 2},
-    {"THIS", 3},
-    {"THAT", 4},
+    {"R0", 0},         {"R1", 1},      {"R2", 2},   {"R3", 3},
+    {"R4", 4},         {"R5", 5},      {"R6", 6},   {"R7", 7},
+    {"R8", 8},         {"R9", 9},      {"R10", 10}, {"R11", 11},
+    {"R12", 12},       {"R13", 13},    {"R14", 14}, {"R15", 15},
+    {"SCREEN", 16384}, {"KBD", 24576}, {"SP", 0},   {"LCL", 1}, 
+    {"ARG", 2},        {"THIS", 3},    {"THAT", 4},
 };
 
+bitval comptable[] = {
+    {"0", 0b00101010},   {"1", 0b00111111},   {"-1", 0b00111010}, 
+    {"D", 0b00001100},   {"A", 0b00110000},   {"!D", 0b00001101}, 
+    {"!A", 0b00110001},  {"-D", 0b00001111},  {"-A", 0b00110011}, 
+    {"D+1", 0b00011111}, {"A+1", 0b00110111}, {"D-1", 0b00001110}, 
+    {"A-1", 0b00110011}, {"D+A", 0b00000010}, {"D-A", 0b00010011}, 
+    {"D&A", 0b00000000}, {"D|A", 0b00010101}, {"M", 0b01110000}, 
+    {"!M", 0b01110001},  {"-M", 0b01110011},  {"M+1", 0b01110111}, 
+    {"M-1", 0b01110010}, {"D+M", 0b01000010}, {"D-M", 0b01010011}, 
+    {"M-D", 0b01000111}, {"D&M", 0b01000000}, {"D|M", 0b01010101}, 
+};
+
+bitval jumptable[] = {
+    {"JGT", 0b00000001}, {"JEQ", 0b00000010}, {"JGE", 0b00000011}, 
+    {"JLT", 0b00000100}, {"JNE", 0b00000101}, {"JLE", 0b00000110}, 
+    {"JMP", 0b00000111}, 
+};
+
+bitval desttable[]= {
+    {"M", 0b00000001}, {"D", 0b00000010},  {"MD", 0b00000011}, 
+    {"A", 0b00000100}, {"AM", 0b00000101}, {"AD", 0b00000110}, 
+    {"AMD", 0b00000111}, 
+};
 
 int total_instructions = 0;
 
@@ -82,20 +93,8 @@ int main(int argc, char* argv[])
 
 int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
 {
-    uint8_t dest = 0;
-    uint8_t comp = 0;
-    uint8_t jmp  = 0;
-
     symval* table = *tableptr;
-
-    // go to each linenode and check if its an "a" instruction or "c" instruction
-    // if its "a" check if its value exists in symbol table if yes just translate 
-    // its decimal value to binary, if no then put its value 16 onwards in the
-    // symbol table and then translate. 
-
-    // if its a c instruction then translate according to tokens.
-
-    size_t var_n = 16;                              // variable number
+    size_t var_n = 16; // variable number
     lineNode* current_linenode = head;
     while (current_linenode != NULL)
     {
@@ -133,7 +132,7 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
             if (isdigit) // if its decimal value just translate and set instruction for this node and move to next linenode
             {
                 binary = atoi(sym);
-                current_linenode->instruction = binary;
+                current_linenode->instruction = binary & 0x7FFF; // & 0111 1111 1111 1111 to mask the bit15
                 current_linenode = current_linenode->next;
                 free(sym);
                 continue;
@@ -162,7 +161,7 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
                 } 
 
                 // set instruction and move to next linenode 
-                current_linenode->instruction = binary; 
+                current_linenode->instruction = binary & 0x7FFF; 
                 current_linenode = current_linenode->next;
                 free(sym);
                 continue;
@@ -172,7 +171,85 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
         // now do "c" instruction 
         else
         {
-            
+            uint8_t dest = 0;
+            uint8_t comp = 0;
+            uint8_t jmp  = 0;
+            current_linenode->instruction |= 0b111 << 13; // 0000000000000000 | 1110000000000000
+
+            uint8_t size = strlen(current_linenode->line) + 1;
+            char* sym = malloc(size * sizeof(char));
+            char* D = malloc(4*sizeof(char));
+            memset(D, '0', 3);
+            D[3] = '\0';
+            char* C = malloc(4*sizeof(char));
+            memset(C, '0', 3);
+            C[3] = '\0';
+            char* J = malloc(4*sizeof(char));
+            memset(J, '0', 3);
+            J[3] = '\0';
+            bool ifdest = false;
+            bool ifjump = false;
+            for (uint8_t i = 0; i < size; i++)
+            {
+                sym[i] = current_linenode->line[i];
+
+                if (current_linenode->line[i] == '=')
+                {
+                    memcpy(D, sym, i); // memcpy doesnt copy ith byte
+                    D[i] = '\0'; // because D might contain less than 3 characters.
+                    // ready sym for the comp field 
+                    memset(sym, 'd', i+1); // we will ignore all 'd' as they represent dest field
+                    ifdest = true;
+                }
+                else if (current_linenode->line[i] == ';' && ifdest)
+                {
+                    uint8_t j = 0;
+                    while(sym[j] == 'd')
+                        j++;
+
+                    memcpy(C, sym + j, i-j);
+                    if ((i - j) < 4) C[i - j] = '\0';
+                    // ready sym for jump field 
+                    memset(sym + j, 'c', i-(j-1));
+                    ifjump = true;
+                }
+                else if (current_linenode->line[i] == '\0' && ifdest && ifjump)
+                {
+                    uint8_t j = 0;
+                    while(sym[j] == 'd' || sym[j] == 'c')
+                        j++;
+
+                    memcpy(J, sym + j, i-j); 
+                    // ** no need to null terminate is jump field is always 3bytes still good practice to write
+                    if ((i - j) < 4) J[i - j] = '\0';
+                    // and then loop will automatically stop 
+                }
+                else if (current_linenode->line[i] == '\0' && ifdest && !(ifjump))
+                {
+                    uint8_t j = 0;
+                    while(sym[j] == 'd')
+                        j++;
+
+                    memcpy(C, sym + j, i-j);
+                    if ((i - j) < 4) C[i - j] = '\0';
+                }
+                else if (current_linenode->line[i] == ';' && !(ifdest))
+                {
+                    memcpy(C, sym, i);
+                    if (i < 4) C[i] = '\0';
+                    // ready sym for jump field
+                    memset(sym, 'c', i+1);
+                    ifjump = true;
+                }
+                else if (current_linenode->line[i] == '\0' && !(ifdest) && !(ifjump))
+                {
+                    memcpy(C, sym, i);
+                    if (i < 4) C[i] = '\0';
+                }
+            }
+            free(sym);
+
+            // now translate and set instruction 
         }
 
         // output the file
