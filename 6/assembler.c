@@ -66,12 +66,10 @@ bitval desttable[]= {
     {"AMD", 0b00000111}, 
 };
 
-int total_instructions = 0;
-
 lineNode* fileopen(int arg_no ,char* filename);
 symval* mksymbltabl(symval** tableptr, char* sym, int val, size_t* size);
 lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
-int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
+lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
 
 int main(int argc, char* argv[])
 {
@@ -87,17 +85,20 @@ int main(int argc, char* argv[])
     lines = firstpass(lines, &sttable, &stsize); 
 
     // second pass 
-    // lines = secondpass(lines, &sttable, &stsize);
+    lines = secondpass(lines, &sttable, &stsize); 
+
+    // output the instructions to a file and free the line list and the symbol table
     
 }
 
-int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
+lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
 {
     symval* table = *tableptr;
     size_t var_n = 16; // variable number
     lineNode* current_linenode = head;
     while (current_linenode != NULL)
     {
+        
         // lets do the "a" instruction part first 
         if (current_linenode->line[0] == '@')
         {
@@ -160,12 +161,17 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
                     var_n++;
                 } 
 
-                // set instruction and move to next linenode 
+                // SET INSTRUCTION AND MOVE TO NEXT LINENODE:
                 current_linenode->instruction = binary & 0x7FFF; 
+                for (int i = 15; i >= 0; i--) {
+                    printf("%d", (current_linenode->instruction >> i) & 1);
+                }
+                printf("\n");
                 current_linenode = current_linenode->next;
                 free(sym);
-                continue;
+
             }
+            continue;
         }
 
         // now do "c" instruction 
@@ -173,7 +179,7 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
         {
             uint8_t dest = 0;
             uint8_t comp = 0;
-            uint8_t jmp  = 0;
+            uint8_t jump  = 0;
             current_linenode->instruction |= 0b111 << 13; // 0000000000000000 | 1110000000000000
 
             uint8_t size = strlen(current_linenode->line) + 1;
@@ -189,6 +195,8 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
             J[3] = '\0';
             bool ifdest = false;
             bool ifjump = false;
+
+            // TOKENISE:
             for (uint8_t i = 0; i < size; i++)
             {
                 sym[i] = current_linenode->line[i];
@@ -220,9 +228,18 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
                         j++;
 
                     memcpy(J, sym + j, i-j); 
-                    // ** no need to null terminate is jump field is always 3bytes still good practice to write
+                    // **No need to null terminate is jump field is always 3bytes still good practice to write
                     if ((i - j) < 4) J[i - j] = '\0';
                     // and then loop will automatically stop 
+                }
+                else if (current_linenode->line[i] == '\0' && !(ifdest) && ifjump)
+                {
+                    uint8_t j = 0;
+                    while(sym[j] == 'c')
+                        j++;
+
+                    memcpy(J, sym + j, i-j);
+                    if ((i - j) < 4) J[i - j] = '\0';
                 }
                 else if (current_linenode->line[i] == '\0' && ifdest && !(ifjump))
                 {
@@ -248,17 +265,43 @@ int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
                 }
             }
             free(sym);
+            // SET INSTRUCTION FOR THIS NODE:
+            uint8_t desttable_n = sizeof(desttable) / sizeof(desttable[0]);
+            uint8_t comptable_n = sizeof(comptable) / sizeof(comptable[0]);
+            uint8_t jumptable_n = sizeof(jumptable) / sizeof(jumptable[0]);
 
-            // now translate and set instruction 
+            // translate the tokens
+            for (uint8_t i = 0; i < desttable_n; i++)
+            {
+                if (strcmp(desttable[i].sym, D) == 0)
+                    dest = desttable[i].val;
+            }
+            for (uint8_t i = 0; i < comptable_n; i++)
+            {
+                if (strcmp(comptable[i].sym, C) == 0)
+                    comp = comptable[i].val;
+            }
+            for (uint8_t i = 0; i < jumptable_n; i++)
+            {
+                if (strcmp(jumptable[i].sym, J) == 0)
+                    jump = jumptable[i].val;
+            }
+
+            free(D);
+            free(C);
+            free(J);
+
+            // set the instruction
+            current_linenode->instruction |= comp << 6;
+            current_linenode->instruction |= dest << 3;
+            current_linenode->instruction |= jump;
+
+            // move to next linenode
+            current_linenode = current_linenode->next;
         }
-
-        // output the file
     }
+    return head;
 }
-
-
-
-
 
 
 lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
@@ -475,6 +518,5 @@ lineNode* fileopen(int arg_no, char*filename)
         }
     }
     fclose(fileptr);
-    total_instructions = line_number;
     return linenode; // return head of list
 }
