@@ -58,48 +58,46 @@ symval initial_symbols[] = {
 int total_instructions = 0;
 
 lineNode* fileopen(int arg_no ,char* filename);
-lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
 symval* mksymbltabl(symval** tableptr, char* sym, int val, size_t* size);
+lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
+int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
 
 int main(int argc, char* argv[])
 {
     // open the file & load all the lines 
     lineNode* lines = fileopen(argc, argv[argc - 1]);
-    lineNode* current = lines;
-    while(current != NULL)
-    {
-        printf("%s, %i\n", current->line, current->n);
-        current = current->next;
-    }
+
     // initialize the table
     size_t stsize;
     symval* sttable = NULL;
     sttable = mksymbltabl(&sttable, NULL, 0, &stsize);
 
-    printf("\n\n");
-    for (size_t i = 0; i < stsize; i++)
-    {
-        printf("%s, %li\n", sttable[i].sym, sttable[i].val);
-    }
-
     // first pass 
-    printf("\n\n");
-    lines = firstpass(lines, &sttable, &stsize);
-    current = lines;
-    while(current != NULL)
-    {
-        printf("%s, %i\n", current->line, current->n);
-        current = current->next;
-    }
+    lines = firstpass(lines, &sttable, &stsize); 
 
-    printf("\n\n");
-    for (int i = 0; i < stsize; i++)
-    {
-        printf("%s, %li\n", sttable[i].sym, sttable[i].val);
-    }
-    printf("\n\n");
+    // second pass 
+    // lines = secondpass(lines, &sttable, &stsize);
     
 }
+
+int secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
+{
+    uint8_t dest = 0;
+    uint8_t comp = 0;
+    uint8_t jmp  = 0;
+
+    // go to each linenode and check if its an "a" instruction or "c" instruction
+    // if its "a" check if its value exists in symbol table if yes just translate 
+    // its decimal value to binary, if no then put its value 16 onwards in the
+    // symbol table and then translate. 
+
+    // if its a c instruction then translate according to tokens.
+}
+
+
+
+
+
 
 lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
 {
