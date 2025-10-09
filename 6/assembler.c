@@ -4,15 +4,11 @@
 #include <string.h>
 #include <stdint.h>
 
-
 /*
-IMP COMMENTS
-
-On windows to end a line "\r\n" is used (carriage return and linefeed)
-On linux and modern macs end of line is denoted by "\n" (just linefeed)
-To handle this difference we ignore \r altogether so that all line ends
-are denoted by "\n". so when u go to print the lines and other data along
-with it doesnt show weird behaviour.
+COMMENTS:
+On Windows, lines end with \r\n; on Linux and modern macOS, just \n.
+To handle this consistently, we ignore \r so all line endings are treated as \n.
+This avoids unexpected behavior when printing or processing lines.
 */
 
 typedef struct lineNode {
@@ -47,7 +43,7 @@ bitval comptable[] = {
     {"D", 0b00001100},   {"A", 0b00110000},   {"!D", 0b00001101}, 
     {"!A", 0b00110001},  {"-D", 0b00001111},  {"-A", 0b00110011}, 
     {"D+1", 0b00011111}, {"A+1", 0b00110111}, {"D-1", 0b00001110}, 
-    {"A-1", 0b00110011}, {"D+A", 0b00000010}, {"D-A", 0b00010011}, 
+    {"A-1", 0b00110010}, {"D+A", 0b00000010}, {"D-A", 0b00010011}, 
     {"D&A", 0b00000000}, {"D|A", 0b00010101}, {"M", 0b01110000}, 
     {"!M", 0b01110001},  {"-M", 0b01110011},  {"M+1", 0b01110111}, 
     {"M-1", 0b01110010}, {"D+M", 0b01000010}, {"D-M", 0b01010011}, 
@@ -70,6 +66,7 @@ lineNode* fileopen(int arg_no ,char* filename);
 symval* mksymbltabl(symval** tableptr, char* sym, int val, size_t* size);
 lineNode* firstpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
 lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl);
+void outputandfree(char* filename, lineNode* head, symval* table, size_t* sizeoftabl);
 
 int main(int argc, char* argv[])
 {
@@ -78,17 +75,74 @@ int main(int argc, char* argv[])
 
     // initialize the table
     size_t stsize;
-    symval* sttable = NULL;
-    sttable = mksymbltabl(&sttable, NULL, 0, &stsize);
+    symval* sthead = NULL;
+    sthead = mksymbltabl(&sthead, NULL, 0, &stsize);
 
     // first pass 
-    lines = firstpass(lines, &sttable, &stsize); 
+    lines = firstpass(lines, &sthead, &stsize); 
 
     // second pass 
-    lines = secondpass(lines, &sttable, &stsize); 
-
-    // output the instructions to a file and free the line list and the symbol table
+    lines = secondpass(lines, &sthead, &stsize); 
     
+    // output the instructions to a file and free the line list and the symbol table
+    outputandfree(argv[argc-1], lines, sthead, &stsize);
+    
+}
+
+void outputandfree(char* filename, lineNode* head, symval* table, size_t* sizeoftabl)
+{
+    uint16_t len = strlen(filename); // give number of non null characters
+    char* ext = strrchr(filename, '.'); // will return pointer to the '.'
+    if (len < 5 || ext == NULL || strcmp(ext, ".asm") != 0) // order of '||' matters here else segmentation fault
+    {
+        printf("Incorrect input file\nUsage:- ./assembler filename.asm");
+        exit(1);
+    }
+    if (ext) // i.e ext != NULL
+    {
+        *ext = '\0'; // put a '\0' at the place of the '.'
+    }
+    
+    char* outputfile = malloc(strlen(filename) + strlen(".hack") + 1);
+    strcpy(outputfile, filename);
+    strcat(outputfile, ".hack");
+
+    FILE* output = fopen(outputfile, "w");
+    if (output == NULL) {exit(1);}
+
+    lineNode* current = head;
+    while(current != NULL)
+    {
+        for (int i = 15; i >= 0; i--) 
+        {
+            char bit = (current->instruction >> i) & 1;
+            fputc(bit + '0', output); // convert numberic value 0/1 to ascii 
+        }
+        fputc('\n', output); // On Windows, when you write \n to a file opened in text mode, 
+                             // the C runtime automatically converts \n to a CR+LF sequence 
+                             // ("\r\n", bytes 13 and 10).
+        current = current->next;
+    }
+    fclose(output); 
+    free(outputfile);
+
+    // free the linked list of lines 
+    current = head;
+    lineNode* tmp;
+    while (current != NULL)
+    {
+        free(current->line);
+        tmp = current->next;
+        free(current);
+        current = tmp;
+    }
+
+    // free the symbol table 
+    for (size_t i = 0; i < *sizeoftabl; i++) 
+    {
+        free(table[i].sym);
+    }
+    free(table);  // free the whole array
 }
 
 lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
@@ -134,10 +188,7 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
             {
                 binary = atoi(sym);
                 current_linenode->instruction = binary & 0x7FFF; // & 0111 1111 1111 1111 to mask the bit15
-                for (int i = 15; i >= 0; i--) {
-                    printf("%d", (current_linenode->instruction >> i) & 1);
-                }
-                printf("\n");
+
                 current_linenode = current_linenode->next;
                 free(sym);
                 continue;
@@ -167,13 +218,7 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
 
                 // SET INSTRUCTION AND MOVE TO NEXT LINENODE:
                 current_linenode->instruction = binary & 0x7FFF; 
-                for (int i = 15; i >= 0; i--) {
-                    printf("%d", (current_linenode->instruction >> i) & 1);
-                }
-                printf("\n");
-                free(sym);
                 current_linenode = current_linenode->next;
-
             }
             continue;
         }
@@ -188,13 +233,17 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
 
             uint8_t size = strlen(current_linenode->line) + 1;
             char* sym = malloc(size * sizeof(char));
+            if (sym == NULL) {exit(1);}
             char* D = malloc(4*sizeof(char));
+            if (D == NULL) {exit(1);}
             memset(D, '0', 3);
             D[3] = '\0';
             char* C = malloc(4*sizeof(char));
+            if (C == NULL) {exit(1);}
             memset(C, '0', 3);
             C[3] = '\0';
             char* J = malloc(4*sizeof(char));
+            if (J == NULL) {exit(1);}
             memset(J, '0', 3);
             J[3] = '\0';
             bool ifdest = false;
@@ -300,12 +349,6 @@ lineNode* secondpass(lineNode* head, symval** tableptr, size_t* sizeoftabl)
             current_linenode->instruction |= dest << 3;
             current_linenode->instruction |= jump;
 
-            // print 
-            for (int i = 15; i >= 0; i--) {
-                printf("%d", (current_linenode->instruction >> i) & 1);
-            }
-            printf("\n");
-
             // move to next linenode
             current_linenode = current_linenode->next;
         }
@@ -374,7 +417,7 @@ symval* mksymbltabl(symval** tableptr, char* sym, int val, size_t* size)
             
         for (size_t i = 0; i < *size; i++)
         {
-            table[i].sym = strdup(initial_symbols[i].sym);
+            table[i].sym = strdup(initial_symbols[i].sym); // strdup does memory allocation & string duplication
             if (table[i].sym == NULL) { exit(1); }
             table[i].val = initial_symbols[i].val;
         }
