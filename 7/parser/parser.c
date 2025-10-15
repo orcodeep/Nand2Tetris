@@ -9,9 +9,9 @@ static char* makebuffer(char* prevbuffer, int buffsize)
 {
     if (prevbuffer == NULL)
     {
-        char* buff = malloc(buffsize); // make initial buffer
-        if (buff == NULL) {exit(1);} 
-        return buff;
+        char* newbuffer = malloc(buffsize); // make initial buffer
+        if (newbuffer == NULL) {exit(1);} 
+        return newbuffer;
     }
     else 
     {
