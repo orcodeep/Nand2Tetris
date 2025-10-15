@@ -50,15 +50,14 @@ bool parser_hasMoreCommands(FILE* fileptr)
     if (fgets(buff, buffsize, fileptr) != NULL) // parameters: buffer to store to, available size to store to im buffer, FILE*
     {
         int len = strlen(buff); 
-        while (buff[len - 1] != '\n' && !feof(fileptr))
+        int ch;
+        while (len > 0 && buff[len - 1] != '\n' && (ch = fgetc(fileptr)) != EOF)
         {
             buffsize += 5;
             buff = makebuffer(buff, buffsize); 
-            if (fgets(buff + len, buffsize - len, fileptr) == NULL) // will also copy the rest of the line into the regrown buffer. 
-            //if fgets fails (returns NULL), it just means no new data was read
+            ungetc(ch, fileptr);
+            if (fgets(buff + len, buffsize - len, fileptr) == NULL)
                 break;
-            // if fgets had read up to the last char of the last line and didn't encounter the EOF because it stopped at the last char
-            // (also no '\n' on this line) when this time we call fgets, if it encounters the EOF('\0') break and buff contains the prev data
             
             len = strlen(buff);
         }
