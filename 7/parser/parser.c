@@ -140,8 +140,11 @@ char* arg1(char* line, commandType command)
     {
         // first argument is secondWord in the line
         char* secondWord = strtok(NULL, " \t\r\n"); // u pass NULL to strtok to continue from where it left off in original string
+        char* result = NULL;
+        result = strdup(secondWord);
+
         free(copy);
-        return secondWord;
+        return result;
     }
 }
 
@@ -154,9 +157,11 @@ char* arg2(char* line, commandType command)
         strtok(copy, " \t\r\n");
         strtok(NULL, " \t\r\n");
         char* thirdWord = strtok(NULL, " \t\r\n"); 
+        char* result = NULL;
+        result = strdup(thirdWord);
 
         free(copy);
-        return thirdWord;
+        return result;
     }
 
     // for any command other than those in the if block
