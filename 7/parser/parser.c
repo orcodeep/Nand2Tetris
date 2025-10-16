@@ -90,7 +90,6 @@ commandType parser_commandType(char* line)
 {
     // **make a copy on whcih strtok will operate because strtok modifies input string
     char* copy = makecopy(line); 
-
     char* firstWord = strtok(copy, " \t\r\n"); // if empty string strtok will return NULL
 
     // it will return INVALID for comments and empty lines 
@@ -137,7 +136,7 @@ char* arg1(char* line, commandType command)
     char* firstWord = strtok(copy, " \t\r\n");
     if (command == C_ARITHMETIC)
     {
-        char* result = strdup(firstWord);
+        char* result = strdup(firstWord); // ** cant free(copy) then return firstWord as firstWord will be a dangling pointer
         free(copy);
         return result;
     }
@@ -174,23 +173,29 @@ char* arg2(char* line, commandType command)
     return NULL;
 }
 
+
+/*
+TEST:-
+
 int main(int argc, char* argv[])
 {
     FILE* file = parser_construct(argv[1]);
+    if (file == NULL) {return 1;}
     bool hasMore;
     while ((hasMore = parser_hasMoreCommands(file))) // each iteration we get the newline
     {
         char* line = parser_advance(hasMore); // although here hasMore always = true
-        bool type = parser_commandType(line);
+        commandType type = parser_commandType(line);
         char* ar1 = arg1(line, type);
         char* ar2 = arg2(line, type); 
 
-        if (ar1 != NULL)
-            printf("arg1 = %s, ", ar1);
+        if (ar1 != NULL && ar2 == NULL)
+            printf("arg1 = %s\n", ar1);
 
-        if (ar2 != NULL)
-            printf("arg2 = %s\n", ar2);
+        else if (ar2 != NULL && ar2 != NULL)
+            printf("arg1 = %s, arg2 = %s\n", ar1, ar2);
     }
     
     fclose(file);
 }
+*/
