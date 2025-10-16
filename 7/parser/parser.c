@@ -1,7 +1,7 @@
 #include "parser.h"
 
 static int buffsize = 25;
-static char* buff;
+static char* buff; 
 
 static char* makebuffer(char* prevbuffer, int buffsize);
 
@@ -64,7 +64,69 @@ bool parser_hasMoreCommands(FILE* fileptr)
 
         return true;
     } 
-
-    else 
-        return false;
+    return false;
 }
+
+char* parser_advance(bool hasMore)
+{
+    if (hasMore)
+        return buff; 
+
+    return NULL;
+}
+
+commandType parser_commandType(char* line)
+{
+    // **make a copy on whcih strtok will operate because strtok modifies input string
+    size_t len = strlen(line);
+    char* copy = malloc(len + 1);
+    if (copy == NULL) {exit(1);}
+    strcpy(copy, line); 
+
+    char* firstWord = strtok(copy, " \t\n"); // if empty string strtok will return NULL
+    if (firstWord != NULL && firstWord[0] != '/') 
+    {
+        commandType type;
+        if(strcmp(firstWord, "push") == 0)
+            type = C_PUSH;
+        else if (strcmp(firstWord, "pop") == 0)
+            type = C_POP;
+        else if (strcmp(firstWord, "label") == 0)
+            type = C_LABEL;
+        else if (strcmp(firstWord, "goto") == 0)
+            type = C_GOTO;
+        else if (strcmp(firstWord, "if-goto") == 0)
+            type = C_IF;
+        else if (strcmp(firstWord, "function") == 0)
+            type = C_FUNCTION;
+        else if (strcmp(firstWord, "return") == 0)
+            type = C_RETURN;
+        else if (strcmp(firstWord, "call") == 0)
+            type = C_CALL;
+        else
+            type = C_ARITHMETIC;
+
+        free(copy);
+        return type;
+    }
+    // it will return INVALID for comments and empty lines 
+    free(copy);
+    return C_INVALID;
+}
+
+/*
+TEST:-
+
+int main(int argc, char* argv[])
+{
+    FILE* file = parser_construct(argv[1]);
+    bool hasMore;
+    while ((hasMore = parser_hasMoreCommands(file))) // each iteration we get the newline
+    {
+        char* line = parser_advance(hasMore); // although here hasMore always = true
+        printf("%s", line);
+    }
+    
+    fclose(file);
+}
+*/
