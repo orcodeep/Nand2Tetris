@@ -117,7 +117,8 @@ commandType parser_commandType(char* line)
         free(copy);
         return type;
     }
-    // it will return INVALID for comments and empty lines 
+    // it will return INVALID for comments and empty lines
+     
     free(copy);
     return C_INVALID;
 }
