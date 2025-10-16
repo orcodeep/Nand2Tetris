@@ -92,7 +92,15 @@ commandType parser_commandType(char* line)
     char* copy = makecopy(line); 
 
     char* firstWord = strtok(copy, " \t\r\n"); // if empty string strtok will return NULL
-    if (firstWord != NULL && firstWord[0] != '/') 
+
+    // it will return INVALID for comments and empty lines 
+    if (firstWord == NULL || firstWord[0] == '/') 
+    {
+        free(copy);
+        return C_INVALID;
+    }
+
+    else 
     {
         commandType type;
         if(strcmp(firstWord, "push") == 0)
@@ -117,10 +125,6 @@ commandType parser_commandType(char* line)
         free(copy);
         return type;
     }
-    // it will return INVALID for comments and empty lines
-     
-    free(copy);
-    return C_INVALID;
 }
 
 char* arg1(char* line, commandType command)
@@ -133,8 +137,9 @@ char* arg1(char* line, commandType command)
     char* firstWord = strtok(copy, " \t\r\n");
     if (command == C_ARITHMETIC)
     {
+        char* result = strdup(firstWord);
         free(copy);
-        return firstWord;
+        return result;
     }
 
     else 
@@ -169,8 +174,6 @@ char* arg2(char* line, commandType command)
     return NULL;
 }
 
-
-
 int main(int argc, char* argv[])
 {
     FILE* file = parser_construct(argv[1]);
@@ -186,7 +189,7 @@ int main(int argc, char* argv[])
             printf("arg1 = %s, ", ar1);
 
         if (ar2 != NULL)
-            printf("arg25 = %s\n", ar2);
+            printf("arg2 = %s\n", ar2);
     }
     
     fclose(file);
