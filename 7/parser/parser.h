@@ -25,6 +25,8 @@ FILE* parser_construct(char* filename);
 bool parser_hasMoreCommands(FILE* fileptr);
 char* parser_advance(bool hasMore);
 commandType parser_commandType(char* line);
+char* arg1(char* file, commandType command);
+char* arg2(char* line, commandType command);
 
 
 #endif

@@ -4,6 +4,7 @@ static int buffsize = 25;
 static char* buff; 
 
 static char* makebuffer(char* prevbuffer, int buffsize);
+static char* makecopy(char* line);
 
 static char* makebuffer(char* prevbuffer, int buffsize)
 {
@@ -24,6 +25,16 @@ static char* makebuffer(char* prevbuffer, int buffsize)
 
         return newbuffer;
     }
+}
+
+static char* makecopy(char* line)
+{
+    size_t len = strlen(line);
+    char* copy = malloc(len + 1);
+    if (copy == NULL) {exit(1);}
+    strcpy(copy, line); 
+
+    return copy;
 }
 
 FILE* parser_construct(char* filename)
@@ -78,12 +89,9 @@ char* parser_advance(bool hasMore)
 commandType parser_commandType(char* line)
 {
     // **make a copy on whcih strtok will operate because strtok modifies input string
-    size_t len = strlen(line);
-    char* copy = malloc(len + 1);
-    if (copy == NULL) {exit(1);}
-    strcpy(copy, line); 
+    char* copy = makecopy(line); 
 
-    char* firstWord = strtok(copy, " \t\n"); // if empty string strtok will return NULL
+    char* firstWord = strtok(copy, " \t\r\n"); // if empty string strtok will return NULL
     if (firstWord != NULL && firstWord[0] != '/') 
     {
         commandType type;
@@ -114,8 +122,48 @@ commandType parser_commandType(char* line)
     return C_INVALID;
 }
 
-/*
-TEST:-
+char* arg1(char* line, commandType command)
+{
+    // the function returns NULL for empty or comment lines or if RETURN command
+    if (command == C_INVALID || command == C_RETURN)
+        return NULL;
+
+    char* copy = makecopy(line);
+    char* firstWord = strtok(copy, " \t\r\n");
+    if (command == C_ARITHMETIC)
+    {
+        free(copy);
+        return firstWord;
+    }
+
+    else 
+    {
+        // first argument is secondWord in the line
+        char* secondWord = strtok(NULL, " \t\r\n"); // u pass NULL to strtok to continue from where it left off in original string
+        free(copy);
+        return secondWord;
+    }
+}
+
+char* arg2(char* line, commandType command)
+{
+    // Only process commands that have a third argument (e.g., push, pop, function, call)
+    if (command == C_PUSH || command == C_POP || command == C_FUNCTION || command == C_CALL)
+    {
+        char* copy = makecopy(line); 
+        strtok(copy, " \t\r\n");
+        strtok(NULL, " \t\r\n");
+        char* thirdWord = strtok(NULL, " \t\r\n"); 
+
+        free(copy);
+        return thirdWord;
+    }
+
+    // for any command other than those in the if block
+    return NULL;
+}
+
+
 
 int main(int argc, char* argv[])
 {
@@ -124,9 +172,16 @@ int main(int argc, char* argv[])
     while ((hasMore = parser_hasMoreCommands(file))) // each iteration we get the newline
     {
         char* line = parser_advance(hasMore); // although here hasMore always = true
-        printf("%s", line);
+        bool type = parser_commandType(line);
+        char* ar1 = arg1(line, type);
+        char* ar2 = arg2(line, type); 
+
+        if (ar1 != NULL)
+            printf("arg1 = %s, ", ar1);
+
+        if (ar2 != NULL)
+            printf("arg25 = %s\n", ar2);
     }
     
     fclose(file);
 }
-*/
