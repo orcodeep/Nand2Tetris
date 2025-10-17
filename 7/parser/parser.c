@@ -180,7 +180,6 @@ TEST:-
 int main(int argc, char* argv[])
 {
     FILE* file = parser_construct(argv[1]);
-    if (file == NULL) {return 1;}
     bool hasMore;
     while ((hasMore = parser_hasMoreCommands(file))) // each iteration we get the newline
     {

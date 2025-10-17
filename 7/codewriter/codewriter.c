@@ -1,5 +1,4 @@
 #include "codewriter.h"
-#include "../parser/parser.h"
 
 size_t arith_label_count = 0;
 
@@ -209,7 +208,84 @@ void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* ar
 
     else // i.e if C_POP
     {
-        
+        if(strcmp(arg1, "local") == 0)
+        {
+            fprintf(fp, "// pop local %s\n", arg2);
+            fprintf(fp, "@LCL\n");
+        }
+        else if (strcmp(arg1, "argument") == 0)
+        {
+            fprintf(fp, "// pop argument %s\n", arg2);
+            fprintf(fp, "@ARG\n");
+        }
+        else if (strcmp(arg1, "this") == 0)
+        {
+            fprintf(fp, "// pop this %s\n", arg2);
+            fprintf(fp, "@THIS\n");
+        }
+        else if (strcmp(arg1, "that") == 0)
+        {
+            fprintf(fp, "// pop that %s\n", arg2);
+            fprintf(fp, "@THAT\n");
+        }
+        else if (strcmp(arg1, "temp") == 0)
+        {
+            fprintf(fp, "// pop temp %s\n", arg2);
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "AM=M-1\n");
+            fprintf(fp, "D=M\n");
+            int t = 5;
+            int offset = atoi(arg2);
+            t += offset;
+            fprintf(fp, "@%i\n", t);
+            fprintf(fp, "M=D\n");
+            return;
+        }
+        else if (strcmp(arg1, "static") == 0)
+        {
+            fprintf(fp, "// pop static %s\n", arg2);
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "AM=M-1\n");
+            fprintf(fp, "D=M\n");
+            fprintf(fp, "@%s.%s\n", filename, arg2);
+            fprintf(fp, "M=D\n");
+            return;
+        }
+        else if (strcmp(arg1, "pointer") == 0)
+        {
+            fprintf(fp, "// pop pointer %s\n", arg2);
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "AM=M-1\n");
+            fprintf(fp, "D=M\n");
+            if (strcmp(arg2, "0") == 0)
+                fprintf(fp, "@THIS\n");
+            else if (strcmp(arg2, "1") == 0)
+                fprintf(fp, "@THAT\n");
+            fprintf(fp, "M=D\n");
+            return;
+        }
+
+        fprintf(fp, "D=M\n");
+        fprintf(fp, "@%s\n", arg2);
+        fprintf(fp, "D=D+A\n");
+        fprintf(fp, "@R13\n");
+        fprintf(fp, "M=D\n");
+        fprintf(fp, "@SP\n");
+        fprintf(fp, "AM=M-1\n");
+        fprintf(fp, "D=M\n");
+        fprintf(fp, "@R13\n");
+        fprintf(fp, "A=M\n");
+        fprintf(fp, "M=D\n");
     }
+
+    free(filename);
+}
+
+void codewriter_close(FILE* outputfile)
+{
+    // Optional: write infinite loop (halt)
+    fprintf(outputfile, "(END)\n@END\n0;JMP\n");
+
+    fclose(outputfile);
 }
 
