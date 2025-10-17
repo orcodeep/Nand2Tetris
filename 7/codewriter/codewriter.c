@@ -28,35 +28,89 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
 {
     arith_label_count++;
 
-    if (strcmp(arg1, "add") == 0)
+    if (strcmp(arg1, "add") == 0 || strcmp(arg1, "sub") == 0)
     {
-        fprintf(file, "// add\n");
+        if (strcmp(arg1, "add") == 0)
+            fprintf(file, "// add\n");
+        else
+            fprintf(file, "// sub\n");
         fprintf(file, "@SP\n");
         fprintf(file, "AM = M - 1\n");
         fprintf(file, "D = M\n");
         fprintf(file, "A = A - 1\n");
-        fprintf(file, "M = M + D\n");  
+        if (strcmp(arg1, "add") == 0)
+            fprintf(file, "M = M + D\n");
+        else
+            fprintf(file, "M = M - D\n");
     }
-    else if (strcmp(arg1, "sub") == 0)
+    else if (strcmp(arg1, "neg") == 0 || strcmp(arg1, "not") == 0)
     {
-        fprintf(file, "// sub\n");
-        fprintf(file, "@SP\n");
-        fprintf(file, "AM = M - 1\n");
-        fprintf(file, "D = M\n");
-        fprintf(file, "A = A - 1\n");
-        fprintf(file, "M = M - D\n");
-    }
-    else if (strcmp(arg1, "neg") == 0)
-    {
-        fprintf(file, "// neg\n");
+        if (strcmp(arg1, "neg") == 0)
+            fprintf(file, "// neg\n");
+        else
+            fprintf(file, "// not\n");
         fprintf(file, "@SP\n");
         fprintf(file, "A = M - 1\n");
-        fprintf(file, "M = -M\n");
+        if (strcmp(arg1, "neg") == 0)
+            fprintf(file, "M = -M\n");
+        else
+            fprintf(file, "M = !M\n");
     }
-    else if (strcmp(arg1, "eq") == 0)
+    else if (strcmp(arg1, "eq") == 0 || strcmp(arg1, "gt") == 0 || strcmp(arg1, "lt") == 0)
     {
-        fprintf(file, "// eq\n");
+        if (strcmp(arg1, "eq") == 0)
+            fprintf(file, "// eq\n");
+        else if (strcmp(arg1, "gt") == 0)
+            fprintf(file, "// gt\n");
+        else
+            fprintf(file, "// lt\n");
 
+        fprintf(file, "@SP\n");
+        fprintf(file, "AM = M - 1\n");
+        fprintf(file, "D = M\n");
+        fprintf(file, "A = A - 1\n");
+        fprintf(file, "D = M - D\n");
+        fprintf(file, "@EQ_TRUE_%zu\n", arith_label_count);
+        
+        if (strcmp(arg1, "eq") == 0)
+            fprintf(file, "D; JEQ\n");
+        else if (strcmp(arg1, "gt") == 0)
+            fprintf(file, "D; JGT\n");
+        else
+            fprintf(file, "D; JLT\n");
+
+        fprintf(file, "@SP\n");
+        fprintf(file, "A = M - 1\n");
+        fprintf(file, "M = 0\n");
+        fprintf(file, "@END_%zu\n", arith_label_count);
+        fprintf(file, "0; JMP\n");
+        fprintf(file, "(EQ_TRUE_%zu)\n", arith_label_count);
+        fprintf(file, "@SP\n");
+        fprintf(file, "A = M - 1\n");
+        fprintf(file, "M = -1\n");
+        fprintf(file, "(END_%zu)\n", arith_label_count);
+    }
+    else if (strcmp(arg1, "and") == 0 || strcmp(arg1, "or") == 0)
+    {
+        if (strcmp(arg1, "and") == 0)
+            fprintf(file, "// and\n");
+        else
+            fprintf(file, "// or\n");
+
+        fprintf(file, "@SP\n");
+        fprintf(file, "AM = M - 1\n");
+        fprintf(file, "D = M\n");
+        fprintf(file, "A = A - 1\n");
+
+        if (strcmp(arg1, "and") == 0)
+            fprintf(file, "M = M & D\n");
+        else
+            fprintf(file, "M = M | D\n"); 
+    }
+    else
+    {
+        printf("incorrect arithmetic vm command\n");
+        exit(1);
     }
 }
 
