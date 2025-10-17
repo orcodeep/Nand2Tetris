@@ -11,7 +11,7 @@ extern size_t arith_label_count;
 
 FILE* codewriter_construct(char* inputname);
 void codewriter_writeArithmetic(FILE* file, char* arg1);
-
+void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* arg1, char* arg2);
 
 
 #endif
