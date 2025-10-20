@@ -17,7 +17,8 @@
 6/rect
 7/MemoryAccess
 7/StackArithmetic
-8/
+8/FunctionCalls
+8/ProgramFlow
 9/
 10/
 11/
