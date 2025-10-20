@@ -1,5 +1,4 @@
-#include "../parser/parser.h"
-#include "../codewriter/codewriter.h"
+#include "main.h"
 
 int main(int argc, char* argv[])
 {
@@ -18,14 +17,6 @@ int main(int argc, char* argv[])
         commandType type = parser_commandType(line);
         char* ar1 = arg1(line, type);
         char* ar2 = arg2(line, type); 
-        
-        /*
-        if (ar1 != NULL && ar2 == NULL)
-            printf("arg1 = %s\n", ar1);
-
-        else if (ar1 != NULL && ar2 != NULL)
-            printf("arg1 = %s, arg2 = %s\n", ar1, ar2);
-        */
 
         if (ar1 != NULL && ar2 == NULL && type == C_ARITHMETIC) // if arithmetic vm command
         {
@@ -41,3 +32,8 @@ int main(int argc, char* argv[])
     codewriter_close(outputfile);
     fclose(file);
 }
+
+// check if argv[1] is a file or directory if directory then parse .vm files one after one
+
+
+
