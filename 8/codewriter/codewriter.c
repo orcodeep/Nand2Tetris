@@ -2,16 +2,13 @@
 
 size_t arith_label_count = 0;
 
-char* checkext(char* name)
+char* checkext(char* name) // returns NULL if file is not a .vm file
 {
     // doesnt modify the argument "char* name"
-    uint16_t len = strlen(name); // give number of non null characters
+    size_t len = strlen(name); // give number of non null characters
     char* ext = strrchr(name, '.'); // will return pointer to the '.'
     if (len < 4 || ext == NULL || strcmp(ext, ".vm") != 0) // order of '||' matters here else segmentation fault
-    {
-        printf("Incorrect input file\nUsage:- ./assembler filename.vm");
-        exit(1);
-    }
+        return NULL;
 
     return ext;
 }
@@ -25,6 +22,11 @@ static char* getfilename(char* file)
     char* ext = checkext(dup); // will return pointer to the '.'
     if (ext) // i.e ext != NULL
         *ext = '\0';
+    else
+    {
+        printf("Incorrect file type\nFilepath doesnt point to a *.vm file");
+        exit(1);
+    }
 
     return dup;
 }

@@ -3,4 +3,9 @@
 #include <sys/stat.h>
 #include <dirent.h>
 
+static size_t filepathBuffSize = 50;
+static char* filepathBuff = NULL;
+
 char* checkargv1(char* arg);
+char* getvmfn(DIR* dir, char* dirpath);
+

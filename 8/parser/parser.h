@@ -29,4 +29,7 @@ char* arg1(char* file, commandType command);
 char* arg2(char* line, commandType command);
 
 
+// use in main.c too to make a buffer to hold filepath
+char* makebuffer(char* prevbuffer, int buffsize);
+
 #endif

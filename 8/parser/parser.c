@@ -3,10 +3,9 @@
 static int buffsize = 25;
 static char* buff; 
 
-static char* makebuffer(char* prevbuffer, int buffsize);
 static char* makecopy(char* line);
 
-static char* makebuffer(char* prevbuffer, int buffsize)
+char* makebuffer(char* prevbuffer, int buffsize)
 {
     if (prevbuffer == NULL)
     {
