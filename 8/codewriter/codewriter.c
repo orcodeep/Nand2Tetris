@@ -2,19 +2,27 @@
 
 size_t arith_label_count = 0;
 
-static char* getfilename(char* file)
+char* checkext(char* name)
 {
-    // ** acually *ext = '\0' works as long as filename is a mutable character array
-    // so to be safe make a duplicate array. as it wont work if file is a 'string literal' like:-
-    // getfilename("file.vm");
-    char* dup = strdup(file); // strdup'ed string must also be freed later
-    uint16_t len = strlen(dup); // give number of non null characters
-    char* ext = strrchr(dup, '.'); // will return pointer to the '.'
+    // doesnt modify the argument "char* name"
+    uint16_t len = strlen(name); // give number of non null characters
+    char* ext = strrchr(name, '.'); // will return pointer to the '.'
     if (len < 4 || ext == NULL || strcmp(ext, ".vm") != 0) // order of '||' matters here else segmentation fault
     {
         printf("Incorrect input file\nUsage:- ./assembler filename.vm");
         exit(1);
     }
+
+    return ext;
+}
+
+static char* getfilename(char* file)
+{
+    // ** acually *ext = '\0' works as long as filename is a mutable character array & it also modifies the filename
+    // so to be safe make a duplicate array. as it wont work if file is a 'string literal' like:-
+    // getfilename("file.vm");
+    char* dup = strdup(file); // strdup'ed string must also be freed later 
+    char* ext = checkext(dup); // will return pointer to the '.'
     if (ext) // i.e ext != NULL
         *ext = '\0';
 

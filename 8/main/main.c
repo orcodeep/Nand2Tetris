@@ -34,6 +34,40 @@ int main(int argc, char* argv[])
 }
 
 // check if argv[1] is a file or directory if directory then parse .vm files one after one
+// it will return the filepath/filename.ext of the file that parser has to parse 
 
+char* checkargv1(char* arg) // arg is argv[1]
+{
+    struct stat path_stat;
+    bool isdir = false;
+    
+    if (stat(arg, &path_stat)) // stat returns 0 for success
+    {
+        printf("stat failed");
+        exit(1);
+    }
+
+    if (S_ISREG(path_stat.st_mode)) 
+        isdir = false;
+
+    else if (S_ISDIR(path_stat.st_mode)) 
+        isdir = true;
+    else
+    {
+        printf("\n%s is not a valid path to a file or directory\n", arg);
+        exit(1);
+    }
+
+    if (!isdir)
+    {
+        checkext(arg); // will stop program if the file is not a ".vm" file (defined in codewriter.h)
+        return arg;
+    }
+    else 
+    {
+        // now recursively return the .vm filepaths one by one
+    }
+
+}
 
 
