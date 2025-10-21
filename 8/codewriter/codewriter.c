@@ -1,6 +1,8 @@
 #include "codewriter.h"
 
 size_t arith_label_count = 0;
+size_t return_addr_i = 0;
+char* currentfunc = NULL;
 
 char* checkext(char* name) // returns NULL if file is not a .vm file
 {
@@ -313,19 +315,216 @@ void codewriter_close(FILE* outputfile)
 }
 
 // now this will write based on whether there is only one file or multiple files
-void codewriter_writeInit(int vmfilecount, FILE* fileptr)
+void codewriter_writeInit(int vmfilecount, FILE* fp)
 {
-    fprintf(fileptr, "// Initialize\n");
-    fprintf(fileptr, "@256\n");
-    fprintf(fileptr, "D=A\n");
-    fprintf(fileptr, "@SP\n");
-    fprintf(fileptr, "M=D\n");
+    fprintf(fp, "// Initialize\n");
+    fprintf(fp, "@256\n");
+    fprintf(fp, "D=A\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=D\n");
 
     if (vmfilecount > 1)
     {
-        // call Sys.Init()
+        // call Sys.init() 0 
+        codewriter_writeCall(fp, "Sys.init", "0");
     }
 }
 
+void codewriter_writeLabel(FILE* fp, char* arg1) // inside functions
+{
+    fprintf(fp, "// label (%s)\n", arg1);
+    if (currentfunc != NULL)
+        fprintf(fp, "(%s$%s)\n", currentfunc, arg1);
+    else
+        fprintf(fp, "(%s)\n", arg1);
+}
 
+void codewriter_writeGoto(FILE* fp, char* arg1)
+{
+    fprintf(fp, "// goto %s\n", arg1);
+    fprintf(fp, "@%s\n", arg1);
+    fprintf(fp, "0;JMP\n");
+}
+
+void codewriter_writeIf(FILE* fp, char* arg1)
+{
+    fprintf(fp, "// if-goto %s\n", arg1);
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "AM=M-1\n"); // pop the stack
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@%s\n", arg1);
+    fprintf(fp, "D;JNE\n"); // jump for any non zero value. Thats wht if condition does
+}
+
+void codewriter_writeCall(FILE* fp, char* arg1, char* arg2)
+{
+    return_addr_i++;
+
+    // push returnAddress
+    // ** push to stack the value of the (retAddr) that this label symbol gets on declaration
+    fprintf(fp, "// call %s %s\n", arg1, arg2);
+    fprintf(fp, "@%s$ret.%zu\n", arg1, return_addr_i); // declaration of the return label
+    fprintf(fp, "D=A\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "M=D\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=M+1\n");
+
+    // push LCL
+    fprintf(fp, "@LCL\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "M=D\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=M+1\n");
+
+    // push ARG
+    fprintf(fp, "@ARG\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "M=D\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=M+1\n");
+
+    // push THIS 
+    fprintf(fp, "@THIS\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "M=D\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=M+1\n");
+
+    // push THAT
+    fprintf(fp, "@THAT\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "M=D\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=M+1\n");
+
+    // set ARG = SP - 5 - nArgs for the called function
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@5\n");
+    fprintf(fp, "D=D-A\n");
+    fprintf(fp, "@%s\n", arg2);
+    fprintf(fp, "D=D-A\n");
+    fprintf(fp, "@ARG\n");
+    fprintf(fp, "M=D\n");
+
+    // set LCL = SP for called function
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@LCL\n");
+    fprintf(fp, "M=D\n");
+
+    // goto functionName
+    codewriter_writeGoto(fp, arg1);
+
+    // (returnAddress) label
+    fprintf(fp, "(%s$ret.%zu)\n", arg1, return_addr_i);
+}
+
+void codewriter_writeFunction(FILE* fp, char* arg1, char* arg2)
+{
+    // (functionName)
+    fprintf(fp, "(%s)\n", arg1);
+
+    // push 0 repeat nVars times
+    // i.e initialize local variables
+    int local = atoi(arg2); // nVars 
+    for (int i = 0; i < local; i++)
+    {
+        fprintf(fp, "@0\n");
+        fprintf(fp, "D=A\n");
+        fprintf(fp, "@SP\n");
+        fprintf(fp, "A=M\n");
+        fprintf(fp, "M=D\n");
+        fprintf(fp, "@SP\n");
+        fprintf(fp, "M=M+1\n");
+    }
+
+    // also currentfunc should record the functionName currently active
+    free(currentfunc);
+    currentfunc = strdup(arg1);
+}
+
+void codewriter_writeReturn(FILE* fp)
+{
+    // FRAME = LCL
+    fprintf(fp, "@LCL\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@R13\n");
+    fprintf(fp, "M=D\n");
+
+    // store the retAddr in R14
+    fprintf(fp, "@5\n");
+    fprintf(fp, "A=D-A\n");
+    fprintf(fp, "D=M\n");    
+    fprintf(fp, "@R14\n");
+    fprintf(fp, "M=D\n");
+
+    // *ARG = pop()
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "AM=M-1\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@ARG\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "M=D\n");
+
+    // SP = ARG + 1
+    fprintf(fp, "@ARG\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@SP\n");
+    fprintf(fp, "M=D+1\n");
+
+    // THAT = *(endframe - 1) i.e *(R13 - 1)
+    fprintf(fp, "@R13\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "D=D-1\n"); 
+    fprintf(fp, "A=D\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@THAT\n");
+    fprintf(fp, "M=D\n");
+
+    // THIS = *(endframe - 2)
+    fprintf(fp, "@R13\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@2\n");
+    fprintf(fp, "D=D-A\n");
+    fprintf(fp, "A=D\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@THIS\n");
+    fprintf(fp, "M=D\n");
+
+    // ARG = *(endframe - 3)
+    fprintf(fp, "@R13\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@3\n");
+    fprintf(fp, "D=D-A\n");
+    fprintf(fp, "A=D\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@ARG\n");
+    fprintf(fp, "M=D\n");
+
+    // LCL = *(endframe - 4)
+    fprintf(fp, "@R13\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@4\n");
+    fprintf(fp, "D=D-A\n");
+    fprintf(fp, "A=D\n");
+    fprintf(fp, "D=M\n");
+    fprintf(fp, "@LCL\n");
+    fprintf(fp, "M=D\n");
+
+    // goto retAddr
+    fprintf(fp, "@R14\n");
+    fprintf(fp, "A=M\n");
+    fprintf(fp, "0;JMP\n");
+}
 
