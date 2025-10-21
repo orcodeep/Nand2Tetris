@@ -31,21 +31,34 @@ static char* getfilename(char* file)
     return dup;
 }
 
-FILE* codewriter_construct(char* file)
+FILE* codewriter_construct(char* path, bool isdir)
 {
-    char* inputname = getfilename(file);
-    
-    char* outputfile = malloc(strlen(inputname) + strlen(".asm") + 1);
-    strcpy(outputfile, inputname);
-    strcat(outputfile, ".asm");
+    char* inputname;
+    char* outputfile;
 
+    if (isdir)
+    {
+        inputname = strdup(path);
+        size_t len = strlen(inputname);
+        if (len > 0 && inputname[len - 1] == '/')
+            inputname[len-1] = '\0';       
+    }
+    else
+    {
+        inputname = getfilename(path);
+        
+    }
+
+    outputfile = malloc(strlen(inputname) + strlen(".asm") + 1);
+    strcpy(outputfile, inputname);
+    strcat(outputfile, ".asm"); // filepath/file.asm
+    
     FILE* output = fopen(outputfile, "w");
     if (output == NULL) {exit(1);}
 
     // Clean up
     free(inputname);
     free(outputfile);
-
     return output;
 }
 
@@ -298,4 +311,21 @@ void codewriter_close(FILE* outputfile)
 
     fclose(outputfile);
 }
+
+// now this will write based on whether there is only one file or multiple files
+void codewriter_writeInit(int vmfilecount, FILE* fileptr)
+{
+    fprintf(fileptr, "// Initialize\n");
+    fprintf(fileptr, "@256\n");
+    fprintf(fileptr, "D=A\n");
+    fprintf(fileptr, "@SP\n");
+    fprintf(fileptr, "M=D\n");
+
+    if (vmfilecount > 1)
+    {
+        // call Sys.Init()
+    }
+}
+
+
 

@@ -1,5 +1,7 @@
 #include "main.h"
 
+static int getvmcount(const char* dirpath);
+
 int main(int argc, char* argv[])
 {
     if (argc != 2)
@@ -8,29 +10,59 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    FILE* file = parser_construct(argv[1]);
-    FILE* outputfile = codewriter_construct(argv[1]);
-    bool hasMore;
-    while ((hasMore = parser_hasMoreCommands(file))) // each iteration we get the newline
+    char* path = checkargv1(argv[1]);
+    bool isdir = false;
+
+    if (path == NULL) // i.e a directory
     {
-        char* line = parser_advance(hasMore); // although here hasMore always = true
-        commandType type = parser_commandType(line);
-        char* ar1 = arg1(line, type);
-        char* ar2 = arg2(line, type); 
-
-        if (ar1 != NULL && ar2 == NULL && type == C_ARITHMETIC) // if arithmetic vm command
+        isdir = true;
+        //**argv[1] is the dirpath then
+        FILE* outputfile = codewriter_construct(argv[1], isdir);
+        int vmfilecount = getvmcount(argv[1]);
+        if (vmfilecount == 0) 
         {
-            codewriter_writeArithmetic(outputfile, ar1);
+            printf("Directory doesnt contain any .vm files\n");
+            return 1;
         }
+        codewriter_writeInit(vmfilecount, outputfile);
 
-        else if (ar1 != NULL && ar2 != NULL && (type == C_PUSH || type == C_POP))
+        DIR* dir = opendirectory(argv[1]);
+        char* filepath;
+        while((filepath = getvmfn(dir, argv[1])) != NULL)
         {
-            codewriter_writePushPop(outputfile, argv[1], type, ar1, ar2);
+            FILE* file = parser_construct(filepath);
+            bool hasmore;
+            while((hasmore = parser_hasMoreCommands(file)))
+            {
+                char* line = parser_advance(); // here hasMore always = true
+                commandType type = parser_commandType(line);
+
+                // dont need setfilename because codewriter functions will take filepath as argument
+
+            }
+            fclose(file);
         }
-        
+        codewriter_close(outputfile);
+        // also close the dir using closedir() opened with opendirectory function 
+        closedir(dir);
+
+
     }
-    codewriter_close(outputfile);
-    fclose(file);
+    else // i.e argv[1] == filepath not directory
+    {
+        isdir = false;
+        FILE* outputfile = codewriter_construct(path, isdir);
+        FILE* file = parser_construct(path);
+        bool hasmore;
+        while((hasmore = parser_hasMoreCommands(file)))
+        {
+
+        }
+        codewriter_close(outputfile);
+        fclose(file);
+    }
+
+    free(filepathBuff);
 }
 
 // check if argv[1] is a file or directory if directory then return NULL
@@ -98,7 +130,7 @@ char* getvmfn(DIR* dir, char* dirpath)
             continue;
 
         // Only proceed if it has a valid .vm extension
-        if (!checkext(name)) // i.e checkext(name) != NULL
+        if (checkext(name) == NULL) // i.e checkext(name) == NULL
             continue;
 
         size_t required = strlen(entry->d_name) + strlen(dirpath) + 2; // +2 for a '/' before the filename and a '\0' at the end 
@@ -124,6 +156,19 @@ char* getvmfn(DIR* dir, char* dirpath)
     return NULL;
 }
 
-
+static int getvmcount(const char* dirpath)
+{
+    DIR* dir = opendirectory(dirpath);
+    struct dirent* entry;
+    int count = 0;
+    while((entry = readdir(dir)) != NULL)
+    {
+        // Only proceed if it has a valid .vm extension
+        if (checkext(entry->d_name) != NULL) // i.e checkext(name) != NULL i.e a .vm file
+            count++;
+    }
+    closedir(dir);
+    return count;
+}
 
 

@@ -1,7 +1,7 @@
 #include "parser.h"
 
 static int buffsize = 25;
-static char* buff; 
+static char* buff = NULL;   
 
 static char* makecopy(char* line);
 
@@ -53,6 +53,12 @@ bool parser_hasMoreCommands(FILE* fileptr)
     long pos = ftell(fileptr);
     if (pos == 0)
     {
+        // **buff was already pointing to a buffer from the previous file, it gets freed properly here.
+        if (buff != NULL)
+        {
+            free(buff);
+            buff = NULL;
+        }
         buffsize = 25;
         buff = makebuffer(NULL, buffsize); // initial buffer 
     }
@@ -77,12 +83,9 @@ bool parser_hasMoreCommands(FILE* fileptr)
     return false;
 }
 
-char* parser_advance(bool hasMore)
+char* parser_advance()
 {
-    if (hasMore)
-        return buff; 
-
-    return NULL;
+    return buff;
 }
 
 commandType parser_commandType(char* line)
