@@ -18,6 +18,7 @@ void codewriter_writeGoto(FILE* fp, char* arg1);
 void codewriter_writeIf(FILE* fp, char* arg1);
 void codewriter_writeCall(FILE* fp, char* arg1, char* arg2);
 void codewriter_writeFunction(FILE* fp, char* arg1, char* arg2);
+void codewriter_writeReturn(FILE* fp);
 
 // used only as a validatin function in main.c
 char* checkext(char* name);

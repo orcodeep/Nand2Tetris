@@ -22,7 +22,7 @@ static char* getfilename(char* file)
     // getfilename("file.vm");
     char* dup = strdup(file); // strdup'ed string must also be freed later 
     char* ext = checkext(dup); // will return pointer to the '.'
-    if (ext) // i.e ext != NULL
+    if (ext != NULL) // i.e ext != NULL
         *ext = '\0';
     else
     {
@@ -36,7 +36,7 @@ static char* getfilename(char* file)
 FILE* codewriter_construct(char* path, bool isdir)
 {
     char* inputname;
-    char* outputfile;
+    char* outputname;
 
     if (isdir)
     {
@@ -46,22 +46,19 @@ FILE* codewriter_construct(char* path, bool isdir)
             inputname[len-1] = '\0';       
     }
     else
-    {
         inputname = getfilename(path);
-        
-    }
 
-    outputfile = malloc(strlen(inputname) + strlen(".asm") + 1);
-    strcpy(outputfile, inputname);
-    strcat(outputfile, ".asm"); // filepath/file.asm
+    outputname = malloc(strlen(inputname) + strlen(".asm") + 1);
+    strcpy(outputname, inputname);
+    strcat(outputname, ".asm"); // filepath/file.asm
     
-    FILE* output = fopen(outputfile, "w");
-    if (output == NULL) {exit(1);}
+    FILE* outputfile = fopen(outputname, "w");
+    if (outputfile == NULL) {exit(1);}
 
     // Clean up
     free(inputname);
-    free(outputfile);
-    return output;
+    free(outputname);
+    return outputfile;
 }
 
 void codewriter_writeArithmetic(FILE* file, char* arg1) 
@@ -440,11 +437,9 @@ void codewriter_writeFunction(FILE* fp, char* arg1, char* arg2)
     int local = atoi(arg2); // nVars 
     for (int i = 0; i < local; i++)
     {
-        fprintf(fp, "@0\n");
-        fprintf(fp, "D=A\n");
         fprintf(fp, "@SP\n");
         fprintf(fp, "A=M\n");
-        fprintf(fp, "M=D\n");
+        fprintf(fp, "M=0\n");
         fprintf(fp, "@SP\n");
         fprintf(fp, "M=M+1\n");
     }

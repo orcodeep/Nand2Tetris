@@ -38,14 +38,31 @@ int main(int argc, char* argv[])
                 commandType type = parser_commandType(line);
 
                 // dont need setfilename because codewriter functions will take filepath as argument
+                char* ar1 = arg1(line, type);
+                char* ar2 = arg2(line, type); 
 
+                if (ar1 != NULL && ar2 == NULL && type == C_ARITHMETIC) // if arithmetic vm command
+                    codewriter_writeArithmetic(outputfile, ar1);
+                else if (ar1 != NULL && ar2 == NULL && type == C_GOTO)
+                    codewriter_writeGoto(outputfile, ar1);
+                else if (ar1 != NULL && ar2 == NULL && type == C_IF)
+                    codewriter_writeIf(outputfile, ar1);
+                else if (ar1 != NULL && ar2 == NULL && type == C_LABEL)
+                    codewriter_writeLabel(outputfile, ar1);
+                else if (ar1 != NULL && ar2 != NULL && (type == C_PUSH || type == C_POP))
+                    codewriter_writePushPop(outputfile, argv[1], type, ar1, ar2);
+                else if (ar1 != NULL && ar2 != NULL && type == C_FUNCTION)
+                    codewriter_writeFunction(outputfile, ar1, ar2);
+                else if (ar1 != NULL && ar2 != NULL && type == C_CALL)
+                    codewriter_writeCall(outputfile, ar1, ar2);
+                else if (ar1 == NULL && ar2 == NULL && type == C_RETURN)
+                    codewriter_writeReturn(outputfile);
             }
             fclose(file);
         }
         codewriter_close(outputfile);
         // also close the dir using closedir() opened with opendirectory function 
         closedir(dir);
-
 
     }
     else // i.e argv[1] == filepath not directory
@@ -56,7 +73,27 @@ int main(int argc, char* argv[])
         bool hasmore;
         while((hasmore = parser_hasMoreCommands(file)))
         {
-
+            char* line = parser_advance(); // here hasMore always = true
+            commandType type = parser_commandType(line);
+            
+            char* ar1 = arg1(line, type);
+            char* ar2 = arg2(line, type); 
+            if (ar1 != NULL && ar2 == NULL && type == C_ARITHMETIC) // if arithmetic vm command
+                codewriter_writeArithmetic(outputfile, ar1);
+            else if (ar1 != NULL && ar2 == NULL && type == C_GOTO)
+                codewriter_writeGoto(outputfile, ar1);
+            else if (ar1 != NULL && ar2 == NULL && type == C_IF)
+                codewriter_writeIf(outputfile, ar1);
+            else if (ar1 != NULL && ar2 == NULL && type == C_LABEL)
+                codewriter_writeLabel(outputfile, ar1);
+            else if (ar1 != NULL && ar2 != NULL && (type == C_PUSH || type == C_POP))
+                codewriter_writePushPop(outputfile, argv[1], type, ar1, ar2);
+            else if (ar1 != NULL && ar2 != NULL && type == C_FUNCTION)
+                codewriter_writeFunction(outputfile, ar1, ar2);
+            else if (ar1 != NULL && ar2 != NULL && type == C_CALL)
+                codewriter_writeCall(outputfile, ar1, ar2);
+            else if (ar1 == NULL && ar2 == NULL && type == C_RETURN)
+                codewriter_writeReturn(outputfile);
         }
         codewriter_close(outputfile);
         fclose(file);
@@ -88,24 +125,21 @@ char* checkargv1(char* arg) // arg is argv[1] on first call in main
         exit(1);
     }
 
-    if (!isdir) // i.e is filepath
-    {
-        char* ext = checkext(arg); 
-        if (ext == NULL) // will stop program if the file is not a ".vm" file (defined in codewriter.h)
-        {
-            printf("Incorrect file type\nFilepath doesnt point to a *.vm file");
-            exit(1);
-        }
-        return arg;
-    }
-    else 
+    if (isdir) 
     {
         // its a dir so need to recursively return the .vm filepaths one by one
         return NULL;
     }
+    char* ext = checkext(arg); 
+    if (ext == NULL) // will stop program if the file is not a ".vm" file (defined in codewriter.h)
+    {
+        printf("Incorrect file type\nFilepath doesnt point to a *.vm file\n");
+        exit(1);
+    }
+    return arg;
 }
 
-DIR* opendirectory(char* dirpath)
+DIR* opendirectory(const char* dirpath)
 {
     DIR* dir = opendir(dirpath); // should be closed later with closedir
     if (!dir)
