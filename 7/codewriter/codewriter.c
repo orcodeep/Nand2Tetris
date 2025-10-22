@@ -50,13 +50,13 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
         else
             fprintf(file, "// sub\n");
         fprintf(file, "@SP\n");
-        fprintf(file, "AM = M - 1\n");
-        fprintf(file, "D = M\n");
-        fprintf(file, "A = A - 1\n");
+        fprintf(file, "AM=M-1\n");
+        fprintf(file, "D=M\n");
+        fprintf(file, "A=A-1\n");
         if (strcmp(arg1, "add") == 0)
-            fprintf(file, "M = M + D\n");
+            fprintf(file, "M=M+D\n");
         else
-            fprintf(file, "M = M - D\n");
+            fprintf(file, "M=M-D\n");
     }
     else if (strcmp(arg1, "neg") == 0 || strcmp(arg1, "not") == 0)
     {
@@ -65,11 +65,11 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
         else
             fprintf(file, "// not\n");
         fprintf(file, "@SP\n");
-        fprintf(file, "A = M - 1\n");
+        fprintf(file, "A=M-1\n");
         if (strcmp(arg1, "neg") == 0)
-            fprintf(file, "M = -M\n");
+            fprintf(file, "M=-M\n");
         else
-            fprintf(file, "M = !M\n");
+            fprintf(file, "M=!M\n");
     }
     else if (strcmp(arg1, "eq") == 0 || strcmp(arg1, "gt") == 0 || strcmp(arg1, "lt") == 0)
     {
@@ -81,28 +81,28 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
             fprintf(file, "// lt\n");
 
         fprintf(file, "@SP\n");
-        fprintf(file, "AM = M - 1\n");
-        fprintf(file, "D = M\n");
-        fprintf(file, "A = A - 1\n");
-        fprintf(file, "D = M - D\n");
+        fprintf(file, "AM=M-1\n");
+        fprintf(file, "D=M\n");
+        fprintf(file, "A=A-1\n");
+        fprintf(file, "D=M-D\n");
         fprintf(file, "@EQ_TRUE_%zu\n", arith_label_count);
         
         if (strcmp(arg1, "eq") == 0)
-            fprintf(file, "D; JEQ\n");
+            fprintf(file, "D;JEQ\n");
         else if (strcmp(arg1, "gt") == 0)
-            fprintf(file, "D; JGT\n");
+            fprintf(file, "D;JGT\n");
         else
-            fprintf(file, "D; JLT\n");
+            fprintf(file, "D;JLT\n");
 
         fprintf(file, "@SP\n");
-        fprintf(file, "A = M - 1\n");
-        fprintf(file, "M = 0\n");
+        fprintf(file, "A=M-1\n");
+        fprintf(file, "M=0\n");
         fprintf(file, "@END_%zu\n", arith_label_count);
-        fprintf(file, "0; JMP\n");
+        fprintf(file, "0;JMP\n");
         fprintf(file, "(EQ_TRUE_%zu)\n", arith_label_count);
         fprintf(file, "@SP\n");
-        fprintf(file, "A = M - 1\n");
-        fprintf(file, "M = -1\n");
+        fprintf(file, "A=M-1\n");
+        fprintf(file, "M=-1\n");
         fprintf(file, "(END_%zu)\n", arith_label_count);
     }
     else if (strcmp(arg1, "and") == 0 || strcmp(arg1, "or") == 0)
@@ -113,14 +113,14 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
             fprintf(file, "// or\n");
 
         fprintf(file, "@SP\n");
-        fprintf(file, "AM = M - 1\n");
-        fprintf(file, "D = M\n");
-        fprintf(file, "A = A - 1\n");
+        fprintf(file, "AM=M-1\n");
+        fprintf(file, "D=M\n");
+        fprintf(file, "A=A-1\n");
 
         if (strcmp(arg1, "and") == 0)
-            fprintf(file, "M = M & D\n");
+            fprintf(file, "M=M&D\n");
         else
-            fprintf(file, "M = M | D\n"); 
+            fprintf(file, "M=M|D\n"); 
     }
     else
     {
@@ -131,8 +131,18 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
 
 void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* arg1, char* arg2)
 {
-    char* filename = getfilename(file); // will be used in static segment. also this must be freed
-
+    char* pathname = getfilename(file); // will be used in static segment. also this must be freed
+    char* lastbackslash = strrchr(pathname, '/');
+    char* filename;
+    if (lastbackslash != NULL)
+        filename = strdup(lastbackslash + 1);
+    else
+    {
+        // No slash found, copy whole pathname
+        filename = strdup(pathname);
+    }
+    free(pathname);
+    
     if (command == C_PUSH)
     {
         if(strcmp(arg1, "local") == 0)
@@ -163,7 +173,19 @@ void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* ar
         else if (strcmp(arg1, "temp") == 0)
         {
             fprintf(fp, "// push temp %s\n", arg2);
-            fprintf(fp, "@5\n");
+            int tempAddr = 5 + atoi(arg2);
+            fprintf(fp, "@%d\n", tempAddr);
+            fprintf(fp, "D=M\n");
+
+            // Then jump directly to push to stack
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "A=M\n");
+            fprintf(fp, "M=D\n");
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "M=M+1\n");
+
+            free(filename);
+            return;
         }
         else if (strcmp(arg1, "pointer") == 0)
         {
@@ -180,7 +202,7 @@ void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* ar
 
         } 
 
-        if (strcmp(arg1, "temp") == 0 || strcmp(arg1, "constant") == 0)
+        if (strcmp(arg1, "constant") == 0)
             fprintf(fp, "D=A\n");
         else
             fprintf(fp, "D=M\n");
