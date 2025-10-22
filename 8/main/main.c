@@ -48,20 +48,22 @@ int main(int argc, char* argv[])
                 else if (ar1 != NULL && ar2 == NULL && type == C_LABEL)
                     codewriter_writeLabel(outputfile, ar1);
                 else if (ar1 != NULL && ar2 != NULL && (type == C_PUSH || type == C_POP))
-                    codewriter_writePushPop(outputfile, filepath, type, ar1, ar2);
+                    codewriter_writePushPop(outputfile, filepath, type, ar1, ar2); // here 2nd arg is filepath of this iteration of outer while loop
                 else if (ar1 != NULL && ar2 != NULL && type == C_FUNCTION)
                     codewriter_writeFunction(outputfile, ar1, ar2);
                 else if (ar1 != NULL && ar2 != NULL && type == C_CALL)
                     codewriter_writeCall(outputfile, ar1, ar2);
                 else if (ar1 == NULL && ar2 == NULL && type == C_RETURN)
                     codewriter_writeReturn(outputfile);
+
+                free(ar1);
+                free(ar2);
             }
             fclose(file);
         }
         codewriter_close(outputfile);
         // also close the dir using closedir() opened with opendirectory function 
         closedir(dir);
-
     }
     else // i.e argv[1] == filepath not directory
     {
@@ -91,6 +93,9 @@ int main(int argc, char* argv[])
                 codewriter_writeCall(outputfile, ar1, ar2);
             else if (ar1 == NULL && ar2 == NULL && type == C_RETURN)
                 codewriter_writeReturn(outputfile);
+
+            free(ar1);
+            free(ar2);
         }
         codewriter_close(outputfile);
         fclose(file);

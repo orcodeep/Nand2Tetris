@@ -8,7 +8,7 @@ char* checkext(char* name) // returns NULL if file is not a .vm file
 {
     // doesnt modify the argument "char* name"
     size_t len = strlen(name); // give number of non null characters
-    char* ext = strrchr(name, '.'); // will return pointer to the '.'
+    char* ext = strrchr(name, '.'); // will return pointer to the **last '.'
     if (len < 4 || ext == NULL || strcmp(ext, ".vm") != 0) // order of '||' matters here else segmentation fault
         return NULL;
 
@@ -26,7 +26,7 @@ static char* getfilename(char* file)
         *ext = '\0';
     else
     {
-        printf("Incorrect file type\nFilepath doesnt point to a *.vm file");
+        printf("Incorrect file type\nFilepath doesnt point to a *.vm file\n");
         exit(1);
     }
 
@@ -36,6 +36,7 @@ static char* getfilename(char* file)
 FILE* codewriter_construct(char* path, bool isdir)
 {
     char* inputname;
+    char* name = NULL;
     char* outputname;
 
     if (isdir)
@@ -43,13 +44,17 @@ FILE* codewriter_construct(char* path, bool isdir)
         inputname = strdup(path);
         size_t len = strlen(inputname);
         if (len > 0 && inputname[len - 1] == '/')
-            inputname[len-1] = '\0';       
+            inputname[len-1] = '\0';
+            
+        char* lastbackslash = strrchr(inputname, '/');
+        name = strdup(lastbackslash);
     }
     else
         inputname = getfilename(path);
 
-    outputname = malloc(strlen(inputname) + strlen(".asm") + 1);
+    outputname = malloc(strlen(inputname) + strlen(name) + strlen(".asm") + 1);
     strcpy(outputname, inputname);
+    strcat(outputname, name);
     strcat(outputname, ".asm"); // filepath/file.asm
     
     FILE* outputfile = fopen(outputname, "w");
@@ -57,6 +62,7 @@ FILE* codewriter_construct(char* path, bool isdir)
 
     // Clean up
     free(inputname);
+    free(name);
     free(outputname);
     return outputfile;
 }
@@ -153,7 +159,17 @@ void codewriter_writeArithmetic(FILE* file, char* arg1)
 
 void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* arg1, char* arg2)
 {
-    char* filename = getfilename(file); // will be used in static segment. also this must be freed
+    char* pathname = getfilename(file); // will be used in static segment. also this must be freed
+    char* lastbackslash = strrchr(pathname, '/');
+    char* filename;
+    if (lastbackslash != NULL)
+        filename = strdup(lastbackslash + 1);
+    else
+    {
+        // No slash found, copy whole pathname
+        filename = strdup(pathname);
+    }
+    free(pathname);
 
     if (command == C_PUSH)
     {
@@ -185,7 +201,19 @@ void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* ar
         else if (strcmp(arg1, "temp") == 0)
         {
             fprintf(fp, "// push temp %s\n", arg2);
-            fprintf(fp, "@5\n");
+            int tempAddr = 5 + atoi(arg2);
+            fprintf(fp, "@%d\n", tempAddr);
+            fprintf(fp, "D=M\n");
+
+            // Then jump directly to push to stack
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "A=M\n");
+            fprintf(fp, "M=D\n");
+            fprintf(fp, "@SP\n");
+            fprintf(fp, "M=M+1\n");
+
+            free(filename);
+            return;
         }
         else if (strcmp(arg1, "pointer") == 0)
         {
@@ -202,7 +230,7 @@ void codewriter_writePushPop(FILE* fp, char* file, commandType command, char* ar
 
         } 
 
-        if (strcmp(arg1, "temp") == 0 || strcmp(arg1, "constant") == 0)
+        if (strcmp(arg1, "constant") == 0)
             fprintf(fp, "D=A\n");
         else
             fprintf(fp, "D=M\n");
@@ -314,14 +342,14 @@ void codewriter_close(FILE* outputfile)
 // now this will write based on whether there is only one file or multiple files
 void codewriter_writeInit(int vmfilecount, FILE* fp)
 {
-    fprintf(fp, "// Initialize\n");
-    fprintf(fp, "@256\n");
-    fprintf(fp, "D=A\n");
-    fprintf(fp, "@SP\n");
-    fprintf(fp, "M=D\n");
-
+    
     if (vmfilecount > 1)
     {
+        fprintf(fp, "// Initialize\n");
+        fprintf(fp, "@256\n");
+        fprintf(fp, "D=A\n");
+        fprintf(fp, "@SP\n");
+        fprintf(fp, "M=D\n");
         // call Sys.init() 0 
         codewriter_writeCall(fp, "Sys.init", "0");
     }
@@ -339,7 +367,10 @@ void codewriter_writeLabel(FILE* fp, char* arg1) // inside functions
 void codewriter_writeGoto(FILE* fp, char* arg1)
 {
     fprintf(fp, "// goto %s\n", arg1);
-    fprintf(fp, "@%s\n", arg1);
+    if (currentfunc != NULL)
+        fprintf(fp, "@%s$%s\n", currentfunc, arg1);
+    else
+        fprintf(fp, "@%s\n", arg1);
     fprintf(fp, "0;JMP\n");
 }
 
@@ -349,8 +380,11 @@ void codewriter_writeIf(FILE* fp, char* arg1)
     fprintf(fp, "@SP\n");
     fprintf(fp, "AM=M-1\n"); // pop the stack
     fprintf(fp, "D=M\n");
-    fprintf(fp, "@%s\n", arg1);
-    fprintf(fp, "D;JNE\n"); // jump for any non zero value. Thats wht if condition does
+    if (currentfunc != NULL)
+        fprintf(fp, "@%s$%s\n", currentfunc, arg1);
+    else
+        fprintf(fp, "@%s\n", arg1);
+    fprintf(fp, "D;JNE\n"); // jump if D != 0
 }
 
 void codewriter_writeCall(FILE* fp, char* arg1, char* arg2)
@@ -405,14 +439,16 @@ void codewriter_writeCall(FILE* fp, char* arg1, char* arg2)
     fprintf(fp, "M=M+1\n");
 
     // set ARG = SP - 5 - nArgs for the called function
+    int nArgs = atoi(arg2);
+    int offset = 5 + nArgs;
+    
     fprintf(fp, "@SP\n");
     fprintf(fp, "D=M\n");
-    fprintf(fp, "@5\n");
-    fprintf(fp, "D=D-A\n");
-    fprintf(fp, "@%s\n", arg2);
+    fprintf(fp, "@%d\n", offset);
     fprintf(fp, "D=D-A\n");
     fprintf(fp, "@ARG\n");
     fprintf(fp, "M=D\n");
+    
 
     // set LCL = SP for called function
     fprintf(fp, "@SP\n");
@@ -421,7 +457,9 @@ void codewriter_writeCall(FILE* fp, char* arg1, char* arg2)
     fprintf(fp, "M=D\n");
 
     // goto functionName
-    codewriter_writeGoto(fp, arg1);
+    fprintf(fp, "@%s\n", arg1);
+    fprintf(fp, "0;JMP\n");
+
 
     // (returnAddress) label
     fprintf(fp, "(%s$ret.%zu)\n", arg1, return_addr_i);
@@ -429,6 +467,12 @@ void codewriter_writeCall(FILE* fp, char* arg1, char* arg2)
 
 void codewriter_writeFunction(FILE* fp, char* arg1, char* arg2)
 {
+    // currentfunc should record the functionName currently active
+    // ** this should be done first for labels or jumps inside 
+    // the function that come after this function declaration, which rely on currentfunc to build their scoped names.
+    free(currentfunc);
+    currentfunc = strdup(arg1);
+
     // (functionName)
     fprintf(fp, "(%s)\n", arg1);
 
@@ -443,14 +487,11 @@ void codewriter_writeFunction(FILE* fp, char* arg1, char* arg2)
         fprintf(fp, "@SP\n");
         fprintf(fp, "M=M+1\n");
     }
-
-    // also currentfunc should record the functionName currently active
-    free(currentfunc);
-    currentfunc = strdup(arg1);
 }
 
 void codewriter_writeReturn(FILE* fp)
 {
+    fprintf(fp, "// return\n");
     // FRAME = LCL
     fprintf(fp, "@LCL\n");
     fprintf(fp, "D=M\n");
@@ -480,39 +521,28 @@ void codewriter_writeReturn(FILE* fp)
 
     // THAT = *(endframe - 1) i.e *(R13 - 1)
     fprintf(fp, "@R13\n");
-    fprintf(fp, "D=M\n");
-    fprintf(fp, "D=D-1\n"); 
-    fprintf(fp, "A=D\n");
+    fprintf(fp, "AM=M-1\n");
     fprintf(fp, "D=M\n");
     fprintf(fp, "@THAT\n");
     fprintf(fp, "M=D\n");
 
     // THIS = *(endframe - 2)
     fprintf(fp, "@R13\n");
-    fprintf(fp, "D=M\n");
-    fprintf(fp, "@2\n");
-    fprintf(fp, "D=D-A\n");
-    fprintf(fp, "A=D\n");
+    fprintf(fp, "AM=M-1\n");
     fprintf(fp, "D=M\n");
     fprintf(fp, "@THIS\n");
     fprintf(fp, "M=D\n");
 
     // ARG = *(endframe - 3)
     fprintf(fp, "@R13\n");
-    fprintf(fp, "D=M\n");
-    fprintf(fp, "@3\n");
-    fprintf(fp, "D=D-A\n");
-    fprintf(fp, "A=D\n");
+    fprintf(fp, "AM=M-1\n");
     fprintf(fp, "D=M\n");
     fprintf(fp, "@ARG\n");
     fprintf(fp, "M=D\n");
 
     // LCL = *(endframe - 4)
     fprintf(fp, "@R13\n");
-    fprintf(fp, "D=M\n");
-    fprintf(fp, "@4\n");
-    fprintf(fp, "D=D-A\n");
-    fprintf(fp, "A=D\n");
+    fprintf(fp, "AM=M-1\n");
     fprintf(fp, "D=M\n");
     fprintf(fp, "@LCL\n");
     fprintf(fp, "M=D\n");
