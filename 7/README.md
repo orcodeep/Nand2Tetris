@@ -1,4 +1,4 @@
-# VM Translator
+# VM Translator (only push/pop & Arithmetic)
 
 ## Compile
 
