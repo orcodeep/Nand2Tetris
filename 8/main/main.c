@@ -10,12 +10,10 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    char* path = checkargv1(argv[1]);
-    bool isdir = false;
+    bool isdir = checkargv1(argv[1]);
 
-    if (path == NULL) // i.e a directory
+    if (isdir) // i.e a directory
     {
-        isdir = true;
         //**argv[1] is the dirpath then
         FILE* outputfile = codewriter_construct(argv[1], isdir);
         int vmfilecount = getvmcount(argv[1]);
@@ -67,9 +65,8 @@ int main(int argc, char* argv[])
     }
     else // i.e argv[1] == filepath not directory
     {
-        isdir = false;
-        FILE* outputfile = codewriter_construct(path, isdir);
-        FILE* file = parser_construct(path);
+        FILE* outputfile = codewriter_construct(argv[1], isdir);
+        FILE* file = parser_construct(argv[1]);
         bool hasmore;
         while((hasmore = parser_hasMoreCommands(file)))
         {
@@ -103,7 +100,7 @@ int main(int argc, char* argv[])
 }
 
 // check if argv[1] is a file or directory if directory then return NULL
-char* checkargv1(char* arg) // arg is argv[1] on first call in main
+bool checkargv1(char* arg) // arg is argv[1] on first call in main
 {
     struct stat path_stat;
     bool isdir = false;
@@ -128,7 +125,7 @@ char* checkargv1(char* arg) // arg is argv[1] on first call in main
     if (isdir) 
     {
         // its a dir so need to recursively return the .vm filepaths one by one
-        return NULL;
+        return true;
     }
     char* ext = checkext(arg); 
     if (ext == NULL) // will stop program if the file is not a ".vm" file (defined in codewriter.h)
@@ -136,7 +133,7 @@ char* checkargv1(char* arg) // arg is argv[1] on first call in main
         printf("Incorrect file type\nFilepath doesnt point to a *.vm file\n");
         exit(1);
     }
-    return arg;
+    return false;
 }
 
 DIR* opendirectory(const char* dirpath)

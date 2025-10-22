@@ -6,7 +6,7 @@
 static size_t filepathBuffSize = 50;
 static char* filepathBuff = NULL;
 
-char* checkargv1(char* arg);
+bool checkargv1(char* arg);
 DIR* opendirectory(const char* dirpath);
 char* getvmfn(DIR* dir, char* dirpath);
 
